@@ -1,4 +1,4 @@
-# Actualiza mexico_aq.json (calidad del aire de México, CAMS vía Open-Meteo)
+# Actualiza mexico_pm25.json (PM2.5 de México, CAMS vía Open-Meteo)
 # cada 3 horas — el ritmo al que CAMS publica datos nuevos.
 name: Calidad del aire México
 
@@ -27,5 +27,5 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add mexico_aq.json
+          git add mexico_pm25.json
           git diff --cached --quiet || (git commit -m "Actualiza calidad del aire de México" && git push)

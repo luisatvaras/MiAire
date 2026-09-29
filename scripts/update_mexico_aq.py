@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Descarga el AQI actual (EE. UU.) de CAMS vía Open-Meteo para la malla de
-puntos sobre México y lo guarda en mexico_aq.json, que es lo que lee la
-página. Lo corre GitHub Actions cada 3 horas (.github/workflows/mexico-aq.yml),
+"""Descarga el PM2.5 horario actual (µg/m³) de CAMS vía Open-Meteo para la
+malla de puntos sobre México y lo guarda en mexico_pm25.json, que es lo que
+lee la página (lo convierte al índice Plume). Lo corre GitHub Actions cada 3 horas (.github/workflows/mexico-aq.yml),
 así la página nunca le pregunta directo a Open-Meteo (tiene límite de
 consultas por conexión).
 
@@ -50,7 +50,7 @@ def main():
         query = urllib.parse.urlencode({
             "latitude": ",".join(str(lat) for _, lat in batch),
             "longitude": ",".join(str(lon) for lon, _ in batch),
-            "current": "us_aqi",
+            "current": "pm2_5",
         })
         if start:
             time.sleep(PAUSE_SECONDS)
@@ -58,16 +58,16 @@ def main():
         results += answer if isinstance(answer, list) else [answer]  # un solo punto no viene en lista
 
     points = [
-        [lon, lat, result["current"]["us_aqi"]]
+        [lon, lat, round(result["current"]["pm2_5"], 1)]
         for (lon, lat), result in zip(grid, results)
-        if result.get("current", {}).get("us_aqi") is not None
+        if result.get("current", {}).get("pm2_5") is not None
     ]
     data = {
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
-        "source": "CAMS (Copernicus) vía Open-Meteo, AQI EE. UU.",
-        "points": points,  # [lon, lat, aqi]
+        "source": "CAMS (Copernicus) vía Open-Meteo, PM2.5 horario en µg/m³",
+        "points": points,  # [lon, lat, pm25]
     }
-    (ROOT / "mexico_aq.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
+    (ROOT / "mexico_pm25.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
     print(f"OK: {len(points)} puntos")
 
 
