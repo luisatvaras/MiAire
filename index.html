@@ -26,9 +26,12 @@
   --text-legend: #cbd3e0;
   --text-status: #7d8aa0;
   --popup-bg: #12151d;
-  --space-neutral: #f4f4f4; /* fondo del espacio antes de "Mi ubicación" */
+  --space-neutral: #f4f4f4; /* fondo detrás del mapa */
   --intro-text: #1c1f26;
-  --intro-accent: #2a6ac2; /* azul de los botones de la intro */
+  /* Color de los botones de la intro. Empieza azul; al encontrar la ubicación
+     main.js lo cambia al color del sensor más cercano (updateLocationColor). */
+  --intro-accent: #2a6ac2;
+  --intro-on-accent: #ffffff; /* texto encima del color (main.js lo oscurece si el color es claro) */
 }
 
 html, body {
@@ -82,19 +85,20 @@ html, body {
   padding: 8px 16px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--intro-accent);
-  background: rgba(255, 255, 255, 0.85);
+  color: var(--intro-on-accent);
+  background: var(--intro-accent);
   border-radius: 999px;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.6s ease;
+  transition: opacity 0.6s ease, color 0.8s ease, background-color 0.8s ease;
 }
 #step-hint.visible {
   opacity: 1;
   animation: intro-pulse 1.8s ease-in-out infinite;
 }
+/* Pulso de tamaño (no de transparencia: el aviso siempre al 100%) */
 @keyframes intro-pulse {
-  50% { opacity: 0.55; }
+  50% { transform: translateX(-50%) scale(1.06); }
 }
 .intro-select,
 .intro-button {
@@ -105,10 +109,12 @@ html, body {
   font-weight: 600;
   border-radius: 999px;
   cursor: pointer;
+  /* el color cambia con el sensor más cercano: que el cambio sea suave */
+  transition: color 0.8s ease, background-color 0.8s ease, border-color 0.8s ease;
 }
 .intro-select {
   color: var(--intro-accent);
-  background: rgba(255, 255, 255, 0.9);
+  background: #ffffff;
   border: 1.5px solid var(--intro-accent);
   text-align: center;
 }
@@ -116,7 +122,7 @@ html, body {
    pasa a mostrar el estado como texto en una pastilla del mismo azul. */
 .intro-button {
   height: 54px; /* = alto de la imagen a 220px de ancho, para que no "brinque" al cambiar a texto */
-  color: #ffffff;
+  color: var(--intro-on-accent);
   background: var(--intro-accent);
   border: none;
 }
@@ -131,7 +137,7 @@ html, body {
   width: 14px;
   height: auto;
   fill: none;
-  stroke: #eef7ff;
+  stroke: currentColor; /* mismo color que el texto del botón */
   stroke-width: 1.4px;
 }
 .intro-button--image {
@@ -147,7 +153,6 @@ html, body {
   filter: brightness(1.08);
 }
 .intro-button:disabled {
-  opacity: 0.9;
   cursor: progress;
 }
 
@@ -3370,16 +3375,18 @@ const HORIZON_FOG = {
   range: [1, 12],
   color: "#ffffff",
   "high-color": "#eef0f3",
-  "space-color": "rgba(0, 0, 0, 0)", // transparente: el color del espacio lo pone el fondo de #map (ver updateSpaceColor)
+  "space-color": "rgba(0, 0, 0, 0)", // transparente: sin globo no se ve el espacio
   "horizon-blend": 0.08,
   "star-intensity": 0,
 };
 
-// El "espacio" (fondo fuera del planeta, space-color de la niebla) se pinta
-// con el color de AQI del sensor más cercano al usuario — su ubicación real
-// si el navegador la da, o el centro del mapa si no. Se mezcla con blanco
-// para que no sea tan fuerte: SPACE_COLOR_STRENGTH 0 = blanco, 1 = color puro.
-const SPACE_COLOR_STRENGTH = 0.45;
+// Al encontrar la ubicación, los botones de la intro (selector de ciudad,
+// botón de ubicación y aviso "Haz clic para…") toman el color de AQI del
+// sensor más cercano, con la misma escala que las nubes (ver updateLocationColor).
+// LOCATION_TEXT_DARK_ABOVE: si la luminosidad del color (0 = negro, 1 =
+// blanco) pasa de esto, el texto encima va oscuro en vez de blanco (p. ej.
+// sobre amarillo).
+const LOCATION_TEXT_DARK_ABOVE = 0.6;
 
 // --- Pantalla de inicio ------------------------------------------------------
 // INTRO_BOUNDS: al abrir la página, mapa plano (2D) encuadrando México —
@@ -3782,7 +3789,7 @@ function drawCountryAirQuality(points) {
 function applySensorUpdate(collection) {
   map.getSource("sensors").setData(collection);
   updateColumnMeshes(collection);
-  updateSpaceColor(collection);
+  updateLocationColor(collection);
   lastUpdateTime = new Date().toLocaleTimeString();
   updateStatus();
 }
@@ -3812,8 +3819,8 @@ function updateCloudHaloSwap(force = false) {
 }
 map.on("zoom", () => updateCloudHaloSwap());
 
-// --- Color del espacio según el sensor más cercano -------------------------
-// Mientras no haya ubicación (pantalla de inicio), el espacio queda neutro.
+// --- Color de los botones según el sensor más cercano ----------------------
+// Mientras no haya ubicación, los botones quedan en el azul --intro-accent.
 let userLngLat = null; // la pone "Mi ubicación" (simulada, ver SIMULATED_LOCATION)
 
 // Distancia en km sobre la esfera terrestre (haversine).
@@ -3825,7 +3832,7 @@ function distanceKm(a, b) {
   return 12742 * Math.asin(Math.sqrt(h));
 }
 
-function updateSpaceColor(collection) {
+function updateLocationColor(collection) {
   if (!userLngLat) return;
   const reference = userLngLat;
   let nearest = null;
@@ -3839,12 +3846,12 @@ function updateSpaceColor(collection) {
     }
   }
   if (!nearest) return;
-  const [r, g, b] = gradientRgbAt(fractionForAqi(nearest.properties.aqi)).map(
-    (c) => Math.round(255 * (1 - SPACE_COLOR_STRENGTH + c * SPACE_COLOR_STRENGTH))
-  );
-  // space-color de Mapbox no pintaba bien el tono en Standard (salía gris),
-  // así que el espacio se deja transparente y se colorea el fondo del mapa.
-  map.getContainer().style.background = `rgb(${r}, ${g}, ${b})`;
+  const [r, g, b] = gradientRgbAt(fractionForAqi(nearest.properties.aqi));
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  // Variables CSS de style.css: se actualizan en cada lectura (con transición).
+  const root = document.documentElement.style;
+  root.setProperty("--intro-accent", `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`);
+  root.setProperty("--intro-on-accent", luminance > LOCATION_TEXT_DARK_ABOVE ? "var(--intro-text)" : "#ffffff");
 }
 
 // --- Dimensiones de la columna -------------------------------------------
@@ -4871,7 +4878,7 @@ async function startIntroSequence() {
 
   // "Obtiene" la ubicación y pinta el espacio con el sensor más cercano.
   userLngLat = SIMULATED_LOCATION;
-  if (lastSensorCollection) updateSpaceColor(lastSensorCollection);
+  if (lastSensorCollection) updateLocationColor(lastSensorCollection);
   button.innerHTML = `${LOCATION_PIN_SVG}<span>Ubicación encontrada</span>`;
   await waitForClick("Haz clic para ir a Monterrey");
 
