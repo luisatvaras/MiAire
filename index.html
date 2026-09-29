@@ -3251,6 +3251,9 @@ const MAPBOX_TOKEN =
 
 // ===== main.js =====
 
+// La página no usa MEXICO_GRID directamente: va incluida para que el script
+// de GitHub Actions (miaire-web/scripts/update_mexico_aq.py) lea la malla del
+// index.html publicado.
 
 // Copia de METRO_STATIONS con un campo "primaryLine" extra (la primera de
 // sus "lines") en cada estación — así metroLineExpression() puede colorear
@@ -3375,12 +3378,16 @@ const HALO_MIN_ZOOM = 6;
 let showHalo = true; // el botón "Halo" lo apaga del todo; si está encendido, aparece solo al alejarse
 
 // --- Calidad del aire a escala México (pantalla de inicio) -------------------
-// Pronóstico CAMS de Copernicus vía Open-Meteo (gratis, sin llave): AQI de
-// EE. UU. en una malla de puntos sobre México (src/mexicoGrid.js, generada por
+// Pronóstico CAMS de Copernicus vía Open-Meteo: AQI de EE. UU. en una malla
+// de puntos sobre México (src/mexicoGrid.js, generada por
 // scripts/fetch_mexico_grid.py). Resolución ~45 km: sirve para el país, no
-// para la ciudad — ahí mandan los sensores. Se ve de lejos (planeta / país) y
-// se desvanece al acercarse, antes de que aparezca el halo de los sensores.
-const COUNTRY_AQ_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
+// para la ciudad — ahí mandan los sensores. Se ve de lejos (país) y se
+// desvanece al acercarse, antes de que aparezca el halo de los sensores.
+// La página NO consulta Open-Meteo (límite de consultas por conexión): lee
+// mexico_aq.json, que GitHub Actions actualiza cada 3 horas en el repo
+// publicado (miaire-web: scripts/update_mexico_aq.py). URL completa para que
+// también funcione en mapa.html abierto con doble clic.
+const COUNTRY_AQ_URL = "https://luisatvaras.github.io/MiAire/mexico_aq.json";
 // COUNTRY_AQ_OPACITY: opacidad de la mancha de color sobre México.
 const COUNTRY_AQ_OPACITY = 0.55;
 // COUNTRY_AQ_FADE_ZOOM: [empieza a desvanecerse, ya no se ve].
@@ -3573,29 +3580,20 @@ function initializeStyle() {
   updateCloudHaloSwap(true); // capas recién montadas: aplica el estado del zoom actual
 }
 
-// Pide a Open-Meteo el AQI actual de toda la malla de México en una sola
-// consulta. Si falla (sin internet, límite de uso), el mapa sigue igual, sin
-// la capa del país.
+// Carga mexico_aq.json ({ updated, points: [[lon, lat, aqi], ...] }). Si
+// falla (sin internet), el mapa sigue igual, sin la capa del país.
 async function fetchCountryAirQuality() {
-  const params = new URLSearchParams({
-    latitude: MEXICO_GRID.map(([, lat]) => lat).join(","),
-    longitude: MEXICO_GRID.map(([lon]) => lon).join(","),
-    current: "us_aqi",
-  });
   try {
-    const response = await fetch(`${COUNTRY_AQ_URL}?${params}`);
+    const response = await fetch(COUNTRY_AQ_URL, { cache: "no-cache" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const json = await response.json();
-    const results = Array.isArray(json) ? json : [json]; // un solo punto no viene en lista
+    const { points } = await response.json();
     countryAirQuality = {
       type: "FeatureCollection",
-      features: results
-        .map((result, i) => ({
-          type: "Feature",
-          geometry: { type: "Point", coordinates: MEXICO_GRID[i] },
-          properties: { aqi: result.current?.us_aqi },
-        }))
-        .filter((f) => f.properties.aqi != null),
+      features: points.map(([lon, lat, aqi]) => ({
+        type: "Feature",
+        geometry: { type: "Point", coordinates: [lon, lat] },
+        properties: { aqi },
+      })),
     };
     map.getSource("country-aq")?.setData(countryAirQuality);
   } catch (error) {
