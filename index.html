@@ -3424,7 +3424,7 @@ let logoHue = null; // último matiz aplicado (para no redibujar por cambios mí
 // México puede no caber completo). El centro se mide en el área libre de
 // arriba del logo (ver INTRO_BOTTOM_SPACE_PX).
 const INTRO_CENTER = [-102, 23.5];
-const INTRO_ZOOM = 5;
+const INTRO_ZOOM = 6;
 // INTRO_BOTTOM_SPACE_PX: espacio libre abajo durante la intro para el logo y
 // los botones — sube el planeta para que no queden encimados.
 const INTRO_BOTTOM_SPACE_PX = 300;
@@ -3510,10 +3510,10 @@ function plumeIndexOf(values) {
 // en un degradado suave y se recorta con el contorno de México
 // (src/mexicoOutline.js), así el color no se sale al mar ni a otros países.
 // COUNTRY_AQ_OPACITY: opacidad del color sobre México.
-const COUNTRY_AQ_OPACITY = 1;
+const COUNTRY_AQ_OPACITY = 0.9;
 // COUNTRY_AQ_FADE_ZOOM: [empieza a desvanecerse, ya no se ve]. Entre los dos
 // se desvanece poco a poco (a la mitad del camino está al 50%).
-const COUNTRY_AQ_FADE_ZOOM = [5, 10];
+const COUNTRY_AQ_FADE_ZOOM = [6, 10];
 // COUNTRY_AQ_SMOOTH_DEG: qué tanto se funden los puntos vecinos, en grados
 // (la malla es de 0.5°). Más grande = degradado más suave y menos detalle;
 // mucho más chico que la malla = se ven "cuadritos".
@@ -4762,8 +4762,8 @@ function setLayoutVisibility(layerId, visible) {
 let is3DMode = false; // el mapa abre en 2D
 // VIEW_3D_PITCH: inclinación de la cámara en 3D (0 = desde arriba, 85 = a ras
 // de suelo). Se bajó de 62 a 50 porque el primer paso a 3D se trababa (más
-// horizonte = más mosaicos que cargar); Luisa la subió a 65 (cámara más baja).
-const VIEW_3D_PITCH = 65;
+// horizonte = más mosaicos que cargar); Luisa la subió a 70 (cámara más baja).
+const VIEW_3D_PITCH = 70;
 // true mientras se ve la pantalla de inicio: el mapa no muestra sensores.
 let introActive = true;
 // false hasta que termina el vuelo a Monterrey de la intro: el halo no se ve
