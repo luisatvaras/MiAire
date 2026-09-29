@@ -32,6 +32,11 @@
      main.js lo cambia al color del sensor más cercano (updateLocationColor). */
   --intro-accent: #2a6ac2;
   --intro-on-accent: #ffffff; /* texto encima del color (main.js lo oscurece si el color es claro) */
+  /* Mismo color del sensor más cercano, como "r, g, b" para poder darle
+     transparencia: lo usa el fondo del panel. main.js lo actualiza. */
+  --location-rgb: 255, 255, 255;
+  --panel-tint-alpha: 0.45; /* opacidad del color de fondo del panel (0 a 1) */
+  --panel-blur: 18px; /* desenfoque del mapa detrás del panel */
 }
 
 html, body {
@@ -158,7 +163,7 @@ html, body {
 
 /* El panel aparece al terminar la intro (pasa a 3D) */
 #panel {
-  transition: opacity 0.6s ease;
+  transition: opacity 0.6s ease, background-color 0.8s ease;
 }
 #panel.hidden {
   opacity: 0;
@@ -217,14 +222,23 @@ html, body {
   letter-spacing: 0.03em;
 }
 
+/* Panel: fondo del color de la calidad del aire del sensor más cercano,
+   semitransparente y con el mapa de atrás desenfocado. Encima de ese color
+   (claro) los textos van oscuros: se redefinen aquí sus variables. */
 #panel {
+  --text-primary: #1c1f26;
+  --text-subtitle: rgba(28, 31, 38, 0.68);
+  --text-legend: #1c1f26;
+  --text-status: rgba(28, 31, 38, 0.6);
+  --panel-border: rgba(28, 31, 38, 0.12);
   position: absolute;
   top: 16px;
   left: 16px;
   z-index: 1;
-  background: var(--panel-bg);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--panel-border);
+  background: rgba(var(--location-rgb), var(--panel-tint-alpha));
+  backdrop-filter: blur(var(--panel-blur)) saturate(1.3);
+  -webkit-backdrop-filter: blur(var(--panel-blur)) saturate(1.3);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 12px;
   padding: 16px 20px;
   color: var(--text-primary);
@@ -253,7 +267,7 @@ html, body {
   font-family: inherit;
   font-weight: 600;
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.3);
   border: 1px solid var(--panel-border);
   border-radius: 6px;
   cursor: pointer;
@@ -264,14 +278,15 @@ html, body {
 }
 
 .toggle-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* Botón encendido / modo elegido */
 .toggle-btn.active {
-  background: rgba(255, 255, 255, 0.88);
+  background: #ffffff;
   color: #11141b;
   border-color: transparent;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
 }
 
 /* Título de cada grupo de botones del panel */
@@ -3383,8 +3398,8 @@ const HORIZON_FOG = {
 };
 
 // Al encontrar la ubicación, los botones de la intro (selector de ciudad,
-// botón de ubicación y aviso "Haz clic para…") toman el color de AQI del
-// sensor más cercano, con la misma escala que las nubes (ver updateLocationColor).
+// botón de ubicación y aviso "Haz clic para…") y el fondo del panel toman el
+// color de AQI del sensor más cercano, con la misma escala que las nubes (ver updateLocationColor).
 // LOCATION_TEXT_DARK_ABOVE: si la luminosidad del color (0 = negro, 1 =
 // blanco) pasa de esto, el texto encima va oscuro en vez de blanco (p. ej.
 // sobre amarillo).
@@ -3856,7 +3871,9 @@ function updateLocationColor(collection) {
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
   // Variables CSS de style.css: se actualizan en cada lectura (con transición).
   const root = document.documentElement.style;
-  root.setProperty("--intro-accent", `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`);
+  const rgb = `${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}`;
+  root.setProperty("--intro-accent", `rgb(${rgb})`);
+  root.setProperty("--location-rgb", rgb); // fondo semitransparente del panel
   root.setProperty("--intro-on-accent", luminance > LOCATION_TEXT_DARK_ABOVE ? "var(--intro-text)" : "#ffffff");
 }
 
