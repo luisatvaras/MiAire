@@ -514,10 +514,12 @@ const GRAY_BASEMAP_COLORS = {
 // escala ciudad ("city"); entre los dos zooms de "zooms" se mezclan.
 const HILLSHADE = {
   zooms: [5, 9],
+  // A escala país el relieve va ENCIMA del color de calidad del aire: los
+  // brillos blancos lo "lavan" (se ve pastel), por eso highlight casi en 0.
   country: {
-    shadow: "rgba(45, 45, 60, 0.6)",
-    highlight: "rgba(255, 255, 255, 0.35)",
-    accent: "rgba(45, 45, 60, 0.3)",
+    shadow: "rgba(45, 45, 60, 0.4)",
+    highlight: "rgba(255, 255, 255, 0.08)",
+    accent: "rgba(45, 45, 60, 0.15)",
     exaggeration: 1,
   },
   city: {
@@ -3480,7 +3482,7 @@ function plumeIndexOf(values) {
 // en un degradado suave y se recorta con el contorno de México
 // (src/mexicoOutline.js), así el color no se sale al mar ni a otros países.
 // COUNTRY_AQ_OPACITY: opacidad del color sobre México.
-const COUNTRY_AQ_OPACITY = 0.75;
+const COUNTRY_AQ_OPACITY = 1;
 // COUNTRY_AQ_FADE_ZOOM: [empieza a desvanecerse, ya no se ve].
 const COUNTRY_AQ_FADE_ZOOM = [5, 6];
 // COUNTRY_AQ_SMOOTH_DEG: qué tanto se funden los puntos vecinos, en grados
