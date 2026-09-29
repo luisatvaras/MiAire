@@ -11,6 +11,8 @@ coincida con la versión publicada. Solo usa la librería estándar.
 
 import json
 import re
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -19,6 +21,22 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 API_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 BATCH_SIZE = 200  # coordenadas por consulta
+# Open-Meteo gratis: máx. 600 consultas por minuto, y cada coordenada cuenta
+# como una. Con tandas de 200 y esta pausa quedan ~300 por minuto.
+PAUSE_SECONDS = 40
+RETRIES = 3  # si aun así responde 429 (demasiadas consultas), espera y reintenta
+
+
+def fetch_json(url):
+    for attempt in range(RETRIES + 1):
+        try:
+            with urllib.request.urlopen(url, timeout=60) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as error:
+            if error.code != 429 or attempt == RETRIES:
+                raise
+            print(f"429 (demasiadas consultas), reintento en {PAUSE_SECONDS * 2} s")
+            time.sleep(PAUSE_SECONDS * 2)
 
 
 def main():
@@ -34,8 +52,9 @@ def main():
             "longitude": ",".join(str(lon) for lon, _ in batch),
             "current": "us_aqi",
         })
-        with urllib.request.urlopen(f"{API_URL}?{query}", timeout=60) as response:
-            answer = json.load(response)
+        if start:
+            time.sleep(PAUSE_SECONDS)
+        answer = fetch_json(f"{API_URL}?{query}")
         results += answer if isinstance(answer, list) else [answer]  # un solo punto no viene en lista
 
     points = [
