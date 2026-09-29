@@ -3473,13 +3473,13 @@ function plumeIndexOf(values) {
 // en un degradado suave y se recorta con el contorno de México
 // (src/mexicoOutline.js), así el color no se sale al mar ni a otros países.
 // COUNTRY_AQ_OPACITY: opacidad del color sobre México.
-const COUNTRY_AQ_OPACITY = 0.65;
+const COUNTRY_AQ_OPACITY = 0.75;
 // COUNTRY_AQ_FADE_ZOOM: [empieza a desvanecerse, ya no se ve].
 const COUNTRY_AQ_FADE_ZOOM = [5, 6];
 // COUNTRY_AQ_SMOOTH_DEG: qué tanto se funden los puntos vecinos, en grados
 // (la malla es de 0.5°). Más grande = degradado más suave y menos detalle;
 // mucho más chico que la malla = se ven "cuadritos".
-const COUNTRY_AQ_SMOOTH_DEG = 0.35;
+const COUNTRY_AQ_SMOOTH_DEG = 0.25;
 // COUNTRY_AQ_IMAGE_WIDTH: resolución de la imagen en píxeles (el alto sale
 // solo). Más = borde de costa más fino, pero tarda más en dibujarse.
 const COUNTRY_AQ_IMAGE_WIDTH = 640;
