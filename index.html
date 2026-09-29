@@ -3421,13 +3421,11 @@ let logoHue = null; // último matiz aplicado (para no redibujar por cambios mí
 // --- Pantalla de inicio ------------------------------------------------------
 // INTRO_CENTER / INTRO_ZOOM: al abrir la página, mapa plano (2D) sobre
 // México a un zoom fijo (igual en todas las pantallas; en pantallas chicas
-// México puede no caber completo). El centro se mide en el área libre de
-// arriba del logo (ver INTRO_BOTTOM_SPACE_PX).
-const INTRO_CENTER = [-102, 23.5];
-const INTRO_ZOOM = 6;
-// INTRO_BOTTOM_SPACE_PX: espacio libre abajo durante la intro para el logo y
-// los botones — sube el planeta para que no queden encimados.
-const INTRO_BOTTOM_SPACE_PX = 300;
+// México puede no caber completo). INTRO_CENTER queda en el centro exacto de
+// la pantalla (Zacatecas, a pedido de Luisa); el logo y los botones van
+// encima del mapa, abajo.
+const INTRO_CENTER = [-102.5833, 22.7709]; // Zacatecas
+const INTRO_ZOOM = 5.2;
 // SIMULATED_LOCATION: coordenada que "Mi ubicación" finge obtener (centro de
 // Monterrey). Cámbiala para probar otros sensores cercanos.
 const SIMULATED_LOCATION = { lng: -100.3161, lat: 25.6866 };
@@ -3441,7 +3439,7 @@ const map = new mapboxgl.Map({
   config: { basemap: STANDARD_CONFIG },
   // Abre con México en 2D (pantalla de inicio "MiAire"); el botón
   // "Mi ubicación" lleva a Monterrey (ver startIntroSequence).
-  center: INTRO_CENTER, // se reajusta abajo, ya con el espacio del logo
+  center: INTRO_CENTER,
   zoom: INTRO_ZOOM,
   // Plano siempre (Standard usa el globo por defecto al alejarse).
   projection: "mercator",
@@ -3451,8 +3449,6 @@ const map = new mapboxgl.Map({
 });
 
 map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
-// Padding inferior para el logo y los botones (se quita al volar a la ciudad).
-map.jumpTo({ center: INTRO_CENTER, zoom: INTRO_ZOOM, padding: { top: 0, right: 0, left: 0, bottom: INTRO_BOTTOM_SPACE_PX } });
 
 // --- Nubes 2D y halo: uno se convierte en el otro ---------------------------
 // CLOUD_2D_MIN_ZOOM: umbral. Más cerca se ven las nubes 2D; al alejarse más
