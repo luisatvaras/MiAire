@@ -18,21 +18,25 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 API_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
+BATCH_SIZE = 200  # coordenadas por consulta
 
 
 def main():
     html = (ROOT / "index.html").read_text(encoding="utf-8")
     grid = json.loads(re.search(r"const MEXICO_GRID = (\[.*?\]\]);", html).group(1))
 
-    query = urllib.parse.urlencode({
-        "latitude": ",".join(str(lat) for _, lat in grid),
-        "longitude": ",".join(str(lon) for lon, _ in grid),
-        "current": "us_aqi",
-    })
-    with urllib.request.urlopen(f"{API_URL}?{query}", timeout=60) as response:
-        results = json.load(response)
-    if isinstance(results, dict):  # un solo punto no viene en lista
-        results = [results]
+    # En tandas: cientos de coordenadas no caben en una sola URL.
+    results = []
+    for start in range(0, len(grid), BATCH_SIZE):
+        batch = grid[start:start + BATCH_SIZE]
+        query = urllib.parse.urlencode({
+            "latitude": ",".join(str(lat) for _, lat in batch),
+            "longitude": ",".join(str(lon) for lon, _ in batch),
+            "current": "us_aqi",
+        })
+        with urllib.request.urlopen(f"{API_URL}?{query}", timeout=60) as response:
+            answer = json.load(response)
+        results += answer if isinstance(answer, list) else [answer]  # un solo punto no viene en lista
 
     points = [
         [lon, lat, result["current"]["us_aqi"]]
