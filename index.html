@@ -4411,6 +4411,9 @@ let is3DMode = false; // el mapa abre en 2D
 const VIEW_3D_PITCH = 50;
 // true mientras se ve la pantalla de inicio: el mapa no muestra sensores.
 let introActive = true;
+// false hasta que termina el vuelo a Monterrey de la intro: el halo no se ve
+// durante ese zoom, solo cuando el usuario aleja después.
+let haloUnlocked = false;
 let terrainPreloaded = false;
 
 // Activa el terreno plano para que Mapbox descargue y procese la elevación
@@ -4446,7 +4449,7 @@ function setViewMode(next3D) {
 // Qué capas de sensores se ven según el modo. Durante la pantalla de inicio
 // (introActive) no se ve nada, aunque se haga zoom a Monterrey.
 function updateSensorLayerVisibility() {
-  setLayoutVisibility("sensor-base", showHalo && !introActive); // el halo funciona en 2D y en 3D
+  setLayoutVisibility("sensor-base", showHalo && haloUnlocked); // el halo funciona en 2D y en 3D
   setLayoutVisibility("sensor-cloud-2d", !is3DMode && !introActive);
 }
 
@@ -4629,6 +4632,8 @@ async function startIntroSequence() {
     essential: true,
   });
   await new Promise((resolve) => map.once("moveend", resolve));
+  haloUnlocked = true; // ya en la ciudad: el halo aparecerá solo si se aleja
+  updateSensorLayerVisibility();
   preloadTerrain(); // mientras se ve la vista 2D, deja listo el relieve del 3D
   await waitForClick("Haz clic para ver en 3D");
 
