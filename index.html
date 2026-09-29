@@ -473,15 +473,16 @@ html, body {
 // de cada franja de una columna y para el color del halo en el suelo.
 const COLUMN_GRADIENT = ["#00CE93", "#FAC131", "#E4283F", "#A52A8B"];
 
-// Categorías de calidad del aire: umbral máximo, etiqueta y color (el de la
-// leyenda). "logoColor" = color fijo de la categoría para el logo de la intro:
-// el logo toma el matiz de este color (no uno intermedio del gradiente).
+// Categorías de calidad del aire: umbral máximo, etiqueta y color fijo (la
+// paleta oficial de MiAire). Estos 5 colores son los únicos que usan la
+// leyenda, los botones de la intro, el panel y el logo (este último toma su
+// matiz). Las nubes y columnas siguen con el degradado COLUMN_GRADIENT.
 const AQI_LEVELS = [
-  { max: 50, label: "Bueno", color: "#14CC8C", logoColor: "#00CE93" },
-  { max: 100, label: "Aceptable", color: "#FBC94A", logoColor: "#FAC131" },
-  { max: 150, label: "Malo", color: "#FF8B3D", logoColor: "#FF7E22" },
-  { max: 200, label: "Muy malo", color: "#F0453D", logoColor: "#E4283F" },
-  { max: Infinity, label: "Extremadamente malo", color: "#9C2AA0", logoColor: "#A52A8B" },
+  { max: 50, label: "Bueno", color: "#00CE93" },
+  { max: 100, label: "Aceptable", color: "#FAC131" },
+  { max: 150, label: "Malo", color: "#FF7E22" },
+  { max: 200, label: "Muy malo", color: "#E4283F" },
+  { max: Infinity, label: "Extremadamente malo", color: "#A52A8B" },
 ];
 
 // Color y opacidad de cada línea del Metrorrey en el mapa (independiente
@@ -3404,7 +3405,7 @@ const HORIZON_FOG = {
 
 // Al encontrar la ubicación, los botones de la intro (selector de ciudad,
 // botón de ubicación y aviso "Haz clic para…") y el fondo del panel toman el
-// color de AQI del sensor más cercano, con la misma escala que las nubes (ver updateLocationColor).
+// color fijo de la categoría del sensor más cercano (AQI_LEVELS, ver updateLocationColor).
 // LOCATION_TEXT_DARK_ABOVE: si la luminosidad del color (0 = negro, 1 =
 // blanco) pasa de esto, el texto encima va oscuro en vez de blanco (p. ej.
 // sobre amarillo).
@@ -3412,7 +3413,7 @@ const LOCATION_TEXT_DARK_ABOVE = 0.6;
 // El logo (FIGURAS/LOGO.svg) también toma el color: cada uno de sus dos
 // colores conserva su saturación y luminosidad (el "tono") y solo cambia el
 // matiz al del color FIJO de la categoría del sensor más cercano
-// (AQI_LEVELS[].logoColor en colors.js: solo 5 colores posibles). LOGO_COLORS = colores originales del SVG.
+// (AQI_LEVELS[].color en colors.js: solo 5 colores posibles). LOGO_COLORS = colores originales del SVG.
 const LOGO_COLORS = ["#5d9ef0", "#222855"]; // azul claro ("mi" y personaje), azul marino ("aire")
 let logoSvgSource = null; // texto del SVG original, se carga una vez
 let logoHue = null; // último matiz aplicado (para no redibujar por cambios mínimos)
@@ -3876,7 +3877,9 @@ function updateLocationColor(collection) {
     }
   }
   if (!nearest) return;
-  const [r, g, b] = gradientRgbAt(fractionForAqi(nearest.properties.aqi));
+  // Solo los 5 colores fijos de la categoría (AQI_LEVELS), no el degradado.
+  const levelColor = levelForAqi(nearest.properties.aqi).color;
+  const [r, g, b] = hexToRgb01(levelColor);
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
   // Variables CSS de style.css: se actualizan en cada lectura (con transición).
   const root = document.documentElement.style;
@@ -3885,8 +3888,8 @@ function updateLocationColor(collection) {
   root.setProperty("--location-rgb", rgb); // fondo semitransparente del panel
   root.setProperty("--intro-on-accent", luminance > LOCATION_TEXT_DARK_ABOVE ? "var(--intro-text)" : "#ffffff");
 
-  // Logo y aviso: matiz del color fijo de la categoría (no del gradiente).
-  const hue = rgbToHsl(...hexToRgb01(levelForAqi(nearest.properties.aqi).logoColor))[0];
+  // Logo y aviso: matiz del mismo color fijo.
+  const hue = rgbToHsl(r, g, b)[0];
   // Aviso "Haz clic para…": solo letras, en el tono oscuro del logo recoloreado.
   root.setProperty("--intro-accent-dark", hslCss(hue, rgbToHsl(...hexToRgb01(LOGO_COLORS[1])).slice(1)));
   recolorLogo(hue);
