@@ -3477,6 +3477,9 @@ function initializeStyle() {
   map.addLayer({
     id: "country-aq-layer",
     type: "circle",
+    // "middle" (slot de Mapbox Standard): encima de calles y fronteras, pero
+    // debajo de los nombres de ciudades, estados y países — se leen sobre el color.
+    slot: "middle",
     source: "country-aq",
     maxzoom: COUNTRY_AQ_FADE_ZOOM[1],
     paint: {
