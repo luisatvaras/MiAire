@@ -3415,13 +3415,12 @@ let logoSvgSource = null; // texto del SVG original, se carga una vez
 let logoHue = null; // último matiz aplicado (para no redibujar por cambios mínimos)
 
 // --- Pantalla de inicio ------------------------------------------------------
-// INTRO_BOUNDS: al abrir la página, mapa plano (2D) encuadrando México —
-// [[oeste, sur], [este, norte]]. INTRO_EDGE_PX: margen a los lados y arriba.
-const INTRO_BOUNDS = [[-117.5, 14.3], [-86.5, 32.8]];
-const INTRO_EDGE_PX = 30;
-// INTRO_ZOOM_OUT: niveles de zoom que se aleja la vista inicial después de
-// encuadrar México (0 = México justo llenando la pantalla; más = más lejos).
-const INTRO_ZOOM_OUT = 0.6;
+// INTRO_CENTER / INTRO_ZOOM: al abrir la página, mapa plano (2D) sobre
+// México a un zoom fijo (igual en todas las pantallas; en pantallas chicas
+// México puede no caber completo). El centro se mide en el área libre de
+// arriba del logo (ver INTRO_BOTTOM_SPACE_PX).
+const INTRO_CENTER = [-102, 23.5];
+const INTRO_ZOOM = 5;
 // INTRO_BOTTOM_SPACE_PX: espacio libre abajo durante la intro para el logo y
 // los botones — sube el planeta para que no queden encimados.
 const INTRO_BOTTOM_SPACE_PX = 300;
@@ -3438,7 +3437,8 @@ const map = new mapboxgl.Map({
   config: { basemap: STANDARD_CONFIG },
   // Abre con México en 2D (pantalla de inicio "MiAire"); el botón
   // "Mi ubicación" lleva a Monterrey (ver startIntroSequence).
-  bounds: INTRO_BOUNDS, // se reencuadra abajo, ya con el espacio del logo
+  center: INTRO_CENTER, // se reajusta abajo, ya con el espacio del logo
+  zoom: INTRO_ZOOM,
   // Plano siempre (Standard usa el globo por defecto al alejarse).
   projection: "mercator",
   pitch: 0, // abre en vista 2D (ver is3DMode)
@@ -3447,12 +3447,8 @@ const map = new mapboxgl.Map({
 });
 
 map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
-// fitBounds deja este padding puesto en el mapa (se quita al volar a la ciudad).
-map.fitBounds(INTRO_BOUNDS, {
-  padding: { top: INTRO_EDGE_PX, right: INTRO_EDGE_PX, left: INTRO_EDGE_PX, bottom: INTRO_BOTTOM_SPACE_PX + INTRO_EDGE_PX },
-  duration: 0,
-});
-map.setZoom(map.getZoom() - INTRO_ZOOM_OUT);
+// Padding inferior para el logo y los botones (se quita al volar a la ciudad).
+map.jumpTo({ center: INTRO_CENTER, zoom: INTRO_ZOOM, padding: { top: 0, right: 0, left: 0, bottom: INTRO_BOTTOM_SPACE_PX } });
 
 // --- Nubes 2D y halo: uno se convierte en el otro ---------------------------
 // CLOUD_2D_MIN_ZOOM: umbral. Más cerca se ven las nubes 2D; al alejarse más
@@ -3511,8 +3507,9 @@ function plumeIndexOf(values) {
 // (src/mexicoOutline.js), así el color no se sale al mar ni a otros países.
 // COUNTRY_AQ_OPACITY: opacidad del color sobre México.
 const COUNTRY_AQ_OPACITY = 1;
-// COUNTRY_AQ_FADE_ZOOM: [empieza a desvanecerse, ya no se ve].
-const COUNTRY_AQ_FADE_ZOOM = [5, 6];
+// COUNTRY_AQ_FADE_ZOOM: [empieza a desvanecerse, ya no se ve]. Entre los dos
+// se desvanece poco a poco (a la mitad del camino está al 50%).
+const COUNTRY_AQ_FADE_ZOOM = [5, 10];
 // COUNTRY_AQ_SMOOTH_DEG: qué tanto se funden los puntos vecinos, en grados
 // (la malla es de 0.5°). Más grande = degradado más suave y menos detalle;
 // mucho más chico que la malla = se ven "cuadritos".
@@ -4756,9 +4753,10 @@ function setLayoutVisibility(layerId, visible) {
 // sensor (sensor-cloud-2d), coloreado con la misma expresión de AQI que ya
 // usa el halo de la base — no hace falta la leyenda aparte en ese modo.
 let is3DMode = false; // el mapa abre en 2D
-// VIEW_3D_PITCH: inclinación de la cámara en 3D. Se bajó de 62 a 50: menos
-// horizonte = menos mosaicos que cargar en el primer paso a 3D (se trababa).
-const VIEW_3D_PITCH = 50;
+// VIEW_3D_PITCH: inclinación de la cámara en 3D (0 = desde arriba, 85 = a ras
+// de suelo). Se bajó de 62 a 50 porque el primer paso a 3D se trababa (más
+// horizonte = más mosaicos que cargar); Luisa la subió a 65 (cámara más baja).
+const VIEW_3D_PITCH = 65;
 // true mientras se ve la pantalla de inicio: el mapa no muestra sensores.
 let introActive = true;
 // false hasta que termina el vuelo a Monterrey de la intro: el halo no se ve
