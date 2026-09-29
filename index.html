@@ -3471,7 +3471,9 @@ function initializeStyle() {
       "circle-radius": ["interpolate", ["exponential", 2], ["zoom"], 0, countryRadiusAtZoom0, 10, countryRadiusAtZoom0 * 1024],
       "circle-opacity": ["interpolate", ["linear"], ["zoom"], COUNTRY_AQ_FADE_ZOOM[0], COUNTRY_AQ_OPACITY, COUNTRY_AQ_FADE_ZOOM[1], 0],
       "circle-blur": COUNTRY_AQ_BLUR,
-      "circle-pitch-alignment": "map",
+      // "viewport" (de frente a la cámara), NO "map": en la vista de planeta
+      // (globe) "map" hace que el mapa base desaparezca por completo.
+      "circle-pitch-alignment": "viewport",
     },
   });
 
