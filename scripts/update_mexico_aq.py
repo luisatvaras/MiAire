@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Descarga el PM2.5 horario actual (µg/m³) de CAMS vía Open-Meteo para la
-malla de puntos sobre México y lo guarda en mexico_pm25.json, que es lo que
-lee la página (lo convierte al índice Plume). Lo corre GitHub Actions cada 3 horas (.github/workflows/mexico-aq.yml),
+"""Descarga PM2.5, PM10, NO2 y ozono horarios actuales (µg/m³) de CAMS vía
+Open-Meteo para la malla de puntos sobre México y los guarda en
+mexico_air.json, que es lo que lee la página (calcula el índice Plume). Lo corre GitHub Actions cada 3 horas (.github/workflows/mexico-aq.yml),
 así la página nunca le pregunta directo a Open-Meteo (tiene límite de
 consultas por conexión).
 
@@ -21,6 +21,8 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 API_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 BATCH_SIZE = 200  # coordenadas por consulta
+# Contaminantes, en el orden en que quedan en cada punto: [lon, lat, pm25, pm10, no2, o3].
+POLLUTANTS = ["pm2_5", "pm10", "nitrogen_dioxide", "ozone"]
 # Open-Meteo gratis: máx. 600 consultas por minuto, y cada coordenada cuenta
 # como una. Con tandas de 200 y esta pausa quedan ~300 por minuto.
 PAUSE_SECONDS = 40
@@ -50,24 +52,26 @@ def main():
         query = urllib.parse.urlencode({
             "latitude": ",".join(str(lat) for _, lat in batch),
             "longitude": ",".join(str(lon) for lon, _ in batch),
-            "current": "pm2_5",
+            "current": ",".join(POLLUTANTS),
         })
         if start:
             time.sleep(PAUSE_SECONDS)
         answer = fetch_json(f"{API_URL}?{query}")
         results += answer if isinstance(answer, list) else [answer]  # un solo punto no viene en lista
 
-    points = [
-        [lon, lat, round(result["current"]["pm2_5"], 1)]
-        for (lon, lat), result in zip(grid, results)
-        if result.get("current", {}).get("pm2_5") is not None
-    ]
+    points = []
+    for (lon, lat), result in zip(grid, results):
+        current = result.get("current", {})
+        values = [current.get(name) for name in POLLUTANTS]
+        if any(v is not None for v in values):
+            points.append([lon, lat] + [None if v is None else round(v, 1) for v in values])
     data = {
         "updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%MZ"),
-        "source": "CAMS (Copernicus) vía Open-Meteo, PM2.5 horario en µg/m³",
-        "points": points,  # [lon, lat, pm25]
+        "source": "CAMS (Copernicus) vía Open-Meteo, µg/m³ horarios",
+        "fields": ["lon", "lat"] + POLLUTANTS,
+        "points": points,
     }
-    (ROOT / "mexico_pm25.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
+    (ROOT / "mexico_air.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
     print(f"OK: {len(points)} puntos")
 
 

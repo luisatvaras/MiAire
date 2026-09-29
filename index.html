@@ -3438,23 +3438,37 @@ const HALO_MIN_ZOOM = 6;
 let showHalo = true; // el botón "Halo" lo apaga del todo; si está encendido, aparece solo al alejarse
 
 // --- Calidad del aire a escala México (pantalla de inicio) -------------------
-// Pronóstico CAMS de Copernicus vía Open-Meteo: PM2.5 horario (µg/m³) en una
-// malla de puntos sobre México (src/mexicoGrid.js, generada por
+// Pronóstico CAMS de Copernicus vía Open-Meteo: PM2.5, PM10, NO2 y ozono
+// horarios (µg/m³) en una malla de puntos sobre México (src/mexicoGrid.js, generada por
 // scripts/fetch_mexico_grid.py). Resolución ~45 km: sirve para el país, no
 // para la ciudad — ahí mandan los sensores. Se ve de lejos (país) y se
 // desvanece al acercarse, antes de que aparezca el halo de los sensores.
 // La página NO consulta Open-Meteo (límite de consultas por conexión): lee
-// mexico_pm25.json, que GitHub Actions actualiza cada 3 horas en el repo
+// mexico_air.json, que GitHub Actions actualiza cada 3 horas en el repo
 // publicado (miaire-web: scripts/update_mexico_aq.py). URL completa para que
 // también funcione en mapa.html abierto con doble clic.
-const COUNTRY_AQ_URL = "https://luisatvaras.github.io/MiAire/mexico_pm25.json";
+const COUNTRY_AQ_URL = "https://luisatvaras.github.io/MiAire/mexico_air.json";
 // Se pinta con el índice de Plume Labs (colores en PLUME_INDEX_COLORS,
-// colors.js), no con la escala de las nubes. Plume no publica su fórmula: dice
-// que sus niveles siguen a la OMS (20 = seguro 1 año, 50 = 1 día, 100 = 1 hora).
-// Con las guías OMS 2005 de PM2.5 (10 µg/m³ anual, 25 µg/m³ en 24 h) sale
-// índice ≈ 2 × PM2.5 — es una APROXIMACIÓN, y solo cuenta PM2.5 (Plume toma
-// el peor de PM2.5, PM10, NO2 y O3).
-const PLUME_INDEX_PER_PM25 = 2;
+// colors.js), no con la escala de las nubes: como Plume, cada punto toma el
+// PEOR de los cuatro contaminantes. Plume no publica su fórmula: dice que sus
+// niveles siguen a la OMS (20 = seguro 1 año, 50 = 1 día, 100 = 1 hora). De
+// las guías OMS 2005 sale un factor por contaminante (índice = factor × µg/m³)
+// — es una APROXIMACIÓN:
+//   PM2.5 × 2   (10 µg/m³ anual -> 20; 25 en 24 h -> 50)
+//   PM10  × 1   (50 µg/m³ en 24 h -> 50)
+//   NO2   × 0.5 (40 µg/m³ anual -> 20; 200 en 1 h -> 100)
+//   O3    × 0.5 (100 µg/m³ en 8 h -> 50)
+// El orden es el de cada punto en mexico_air.json: [lon, lat, pm25, pm10, no2, o3].
+const PLUME_INDEX_FACTORS = [2, 1, 0.5, 0.5];
+
+// Índice Plume de un punto: el peor de sus contaminantes (los que falten no cuentan).
+function plumeIndexOf(values) {
+  let index = null;
+  values.forEach((value, i) => {
+    if (value != null) index = Math.max(index ?? 0, value * PLUME_INDEX_FACTORS[i]);
+  });
+  return index;
+}
 // Se dibuja como una imagen (ver drawCountryAirQuality): los puntos se funden
 // en un degradado suave y se recorta con el contorno de México
 // (src/mexicoOutline.js), así el color no se sale al mar ni a otros países.
@@ -3677,14 +3691,17 @@ function initializeStyle() {
   updateCloudHaloSwap(true); // capas recién montadas: aplica el estado del zoom actual
 }
 
-// Carga mexico_pm25.json ({ updated, points: [[lon, lat, pm25], ...] }). Si
-// falla (sin internet), el mapa sigue igual, sin la capa del país.
+// Carga mexico_air.json ({ updated, points: [[lon, lat, pm25, pm10, no2, o3], ...] }).
+// Si falla (sin internet), el mapa sigue igual, sin la capa del país.
 async function fetchCountryAirQuality() {
   try {
     const response = await fetch(COUNTRY_AQ_URL, { cache: "no-cache" });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const { points } = await response.json();
-    countryAirQualityImage = drawCountryAirQuality(points);
+    const indexPoints = points
+      .map(([lon, lat, ...values]) => [lon, lat, plumeIndexOf(values)])
+      .filter(([, , index]) => index != null);
+    countryAirQualityImage = drawCountryAirQuality(indexPoints);
     map.getSource("country-aq")?.updateImage({ url: countryAirQualityImage });
   } catch (error) {
     console.warn("No se pudo cargar la calidad del aire de México (Open-Meteo):", error);
@@ -3692,10 +3709,11 @@ async function fetchCountryAirQuality() {
 }
 
 // Dibuja la imagen de calidad del aire de México y la devuelve como data URL.
-// Cada píxel dentro del contorno toma el promedio del PM2.5 de los puntos
-// cercanos, pesados por distancia (campana de ancho COUNTRY_AQ_SMOOTH_DEG), y
-// se pinta según el índice Plume (ver PLUME_INDEX_PER_PM25). La imagen va en proyección mercator,
-// como el mapa, para que calce exacta al estirarla sobre COUNTRY_AQ_BOUNDS.
+// points = [[lon, lat, índice Plume], ...]. Cada píxel dentro del contorno
+// toma el promedio del índice de los puntos cercanos, pesados por distancia
+// (campana de ancho COUNTRY_AQ_SMOOTH_DEG), con los colores de Plume. La
+// imagen va en proyección mercator, como el mapa, para que calce exacta al
+// estirarla sobre COUNTRY_AQ_BOUNDS.
 function drawCountryAirQuality(points) {
   const [[west, south], [east, north]] = COUNTRY_AQ_BOUNDS;
   const mercY = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
@@ -3736,21 +3754,21 @@ function drawCountryAirQuality(points) {
       const lon = west + ((px + 0.5) / width) * (east - west);
       let sum = 0;
       let weights = 0;
-      let nearestPm25 = 0;
+      let nearestIndex = 0;
       let nearestSq = Infinity;
-      for (const [pLon, pLat, pm25] of points) {
+      for (const [pLon, pLat, index] of points) {
         const dSq = (pLon - lon) ** 2 + (pLat - lat) ** 2;
         if (dSq < nearestSq) {
           nearestSq = dSq;
-          nearestPm25 = pm25;
+          nearestIndex = index;
         }
         if (dSq > reachSq) continue;
         const w = Math.exp(-dSq / twoSigmaSq);
-        sum += w * pm25;
+        sum += w * index;
         weights += w;
       }
-      const pm25 = weights > 1e-6 ? sum / weights : nearestPm25; // islas lejanas: el punto más cercano
-      const [r, g, b] = plumeIndexRgb(pm25 * PLUME_INDEX_PER_PM25);
+      const index = weights > 1e-6 ? sum / weights : nearestIndex; // islas lejanas: el punto más cercano
+      const [r, g, b] = plumeIndexRgb(index);
       pixels[i] = r * 255;
       pixels[i + 1] = g * 255;
       pixels[i + 2] = b * 255;
