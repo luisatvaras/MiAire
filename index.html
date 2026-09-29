@@ -32,6 +32,9 @@
      main.js lo cambia al color del sensor más cercano (updateLocationColor). */
   --intro-accent: #2a6ac2;
   --intro-on-accent: #ffffff; /* texto encima del color (main.js lo oscurece si el color es claro) */
+  /* Tono oscuro del logo con el matiz del sensor más cercano (main.js): color
+     del aviso "Haz clic para…". Empieza en el azul marino del logo. */
+  --intro-accent-dark: #222855;
   /* Mismo color del sensor más cercano, como "r, g, b" para poder darle
      transparencia: lo usa el fondo del panel. main.js lo actualiza. */
   --location-rgb: 255, 255, 255;
@@ -79,7 +82,8 @@ html, body {
   height: auto;
   margin-bottom: 4px;
 }
-/* Aviso de la intro: "Haz clic para…" (cada paso avanza con un clic) */
+/* Aviso de la intro: "Haz clic para…" (cada paso avanza con un clic).
+   Solo letras, sin fondo, en el tono oscuro del logo. */
 #step-hint {
   position: absolute;
   left: 50%;
@@ -89,13 +93,12 @@ html, body {
   margin: 0;
   padding: 8px 16px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--intro-on-accent);
-  background: var(--intro-accent);
-  border-radius: 999px;
+  font-weight: 700;
+  color: var(--intro-accent-dark);
+  background: none;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.6s ease, color 0.8s ease, background-color 0.8s ease;
+  transition: opacity 0.6s ease, color 0.8s ease;
 }
 #step-hint.visible {
   opacity: 1;
@@ -3404,6 +3407,12 @@ const HORIZON_FOG = {
 // blanco) pasa de esto, el texto encima va oscuro en vez de blanco (p. ej.
 // sobre amarillo).
 const LOCATION_TEXT_DARK_ABOVE = 0.6;
+// El logo (FIGURAS/LOGO.svg) también toma el color: cada uno de sus dos
+// colores conserva su saturación y luminosidad (el "tono") y solo cambia el
+// matiz al del sensor más cercano. LOGO_COLORS = colores originales del SVG.
+const LOGO_COLORS = ["#5d9ef0", "#222855"]; // azul claro ("mi" y personaje), azul marino ("aire")
+let logoSvgSource = null; // texto del SVG original, se carga una vez
+let logoHue = null; // último matiz aplicado (para no redibujar por cambios mínimos)
 
 // --- Pantalla de inicio ------------------------------------------------------
 // INTRO_BOUNDS: al abrir la página, mapa plano (2D) encuadrando México —
@@ -3875,6 +3884,54 @@ function updateLocationColor(collection) {
   root.setProperty("--intro-accent", `rgb(${rgb})`);
   root.setProperty("--location-rgb", rgb); // fondo semitransparente del panel
   root.setProperty("--intro-on-accent", luminance > LOCATION_TEXT_DARK_ABOVE ? "var(--intro-text)" : "#ffffff");
+
+  const hue = rgbToHsl(r, g, b)[0];
+  // Aviso "Haz clic para…": solo letras, en el tono oscuro del logo recoloreado.
+  root.setProperty("--intro-accent-dark", hslCss(hue, rgbToHsl(...hexToRgb01(LOGO_COLORS[1])).slice(1)));
+  recolorLogo(hue);
+}
+
+// Cambia el matiz del logo de la intro a `hue` (0-360), respetando la
+// saturación y luminosidad de cada color original (ver LOGO_COLORS).
+async function recolorLogo(hue) {
+  if (logoHue != null && Math.abs(hue - logoHue) < 2) return;
+  logoHue = hue;
+  const img = document.querySelector(".intro-logo");
+  if (!img) return;
+  try {
+    // img.src sirve igual con el archivo (index.html) que con el data URI de mapa.html.
+    logoSvgSource ??= await (await fetch(img.src)).text();
+  } catch (error) {
+    console.warn("No se pudo recolorear el logo:", error);
+    return;
+  }
+  let svg = logoSvgSource;
+  for (const color of LOGO_COLORS) {
+    const [, s, l] = rgbToHsl(...hexToRgb01(color));
+    svg = svg.replaceAll(new RegExp(color, "gi"), hslCss(hue, [s, l]));
+  }
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+function hexToRgb01(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}
+
+// [r, g, b] (0-1) -> [matiz 0-360, saturación 0-1, luminosidad 0-1]
+function rgbToHsl(r, g, b) {
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return [0, 0, l];
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  const h = max === r ? (g - b) / d + (g < b ? 6 : 0) : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, s, l];
+}
+
+function hslCss(hue, [s, l]) {
+  return `hsl(${hue.toFixed(1)}, ${(s * 100).toFixed(1)}%, ${(l * 100).toFixed(1)}%)`;
 }
 
 // --- Dimensiones de la columna -------------------------------------------
