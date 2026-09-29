@@ -3319,9 +3319,10 @@ const HORIZON_FOG = {
 const SPACE_COLOR_STRENGTH = 0.45;
 
 // --- Pantalla de inicio ------------------------------------------------------
-// INTRO_GLOBE_*: cámara del planeta al abrir la página.
-const INTRO_GLOBE_CENTER = [-100.3, 23];
-const INTRO_GLOBE_ZOOM = 1.4;
+// INTRO_BOUNDS: al abrir la página, mapa plano (2D) encuadrando México —
+// [[oeste, sur], [este, norte]]. INTRO_EDGE_PX: margen a los lados y arriba.
+const INTRO_BOUNDS = [[-117.5, 14.3], [-86.5, 32.8]];
+const INTRO_EDGE_PX = 30;
 // INTRO_BOTTOM_SPACE_PX: espacio libre abajo durante la intro para el logo y
 // los botones — sube el planeta para que no queden encimados.
 const INTRO_BOTTOM_SPACE_PX = 300;
@@ -3330,23 +3331,28 @@ const INTRO_BOTTOM_SPACE_PX = 300;
 const SIMULATED_LOCATION = { lng: -100.3161, lat: 25.6866 };
 // Tiempos de la secuencia, en milisegundos.
 const INTRO_LOCATING_MS = 1200; // "Obteniendo tu ubicación…"
-const INTRO_FLY_MS = 4000; // vuelo del planeta a Monterrey
+const INTRO_FLY_MS = 4000; // vuelo de México a Monterrey
 
 const map = new mapboxgl.Map({
   container: "map",
   style: MAP_STYLE,
   config: { basemap: STANDARD_CONFIG },
-  // Abre con el planeta completo (pantalla de inicio "MiAire"); el botón
+  // Abre con México en 2D (pantalla de inicio "MiAire"); el botón
   // "Mi ubicación" lleva a Monterrey (ver startIntroSequence).
-  center: INTRO_GLOBE_CENTER,
-  zoom: INTRO_GLOBE_ZOOM,
+  bounds: INTRO_BOUNDS, // se reencuadra abajo, ya con el espacio del logo
+  // Plano siempre (Standard usa el globo por defecto al alejarse).
+  projection: "mercator",
   pitch: 0, // abre en vista 2D (ver is3DMode)
   bearing: 0,
   antialias: true,
 });
 
 map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), "top-right");
-map.setPadding({ top: 0, right: 0, left: 0, bottom: INTRO_BOTTOM_SPACE_PX }); // se quita al volar a la ciudad
+// fitBounds deja este padding puesto en el mapa (se quita al volar a la ciudad).
+map.fitBounds(INTRO_BOUNDS, {
+  padding: { top: INTRO_EDGE_PX, right: INTRO_EDGE_PX, left: INTRO_EDGE_PX, bottom: INTRO_BOTTOM_SPACE_PX + INTRO_EDGE_PX },
+  duration: 0,
+});
 
 // --- Nubes 2D y halo: uno se convierte en el otro ---------------------------
 // CLOUD_2D_MIN_ZOOM: umbral. Más cerca se ven las nubes 2D; al alejarse más
@@ -3381,7 +3387,7 @@ const COUNTRY_AQ_OPACITY = 0.55;
 const COUNTRY_AQ_FADE_ZOOM = [5, 6];
 // COUNTRY_AQ_RADIUS: radio de cada punto medido en grados de la malla — 1 =
 // toca al vecino; más grande = manchas más fundidas entre sí.
-const COUNTRY_AQ_RADIUS = 2.2;
+const COUNTRY_AQ_RADIUS = 1.3;
 // COUNTRY_AQ_BLUR: 0 = borde duro, 1 = totalmente difuminado.
 const COUNTRY_AQ_BLUR = 1;
 let countryAirQuality = null; // FeatureCollection con la última respuesta de Open-Meteo
