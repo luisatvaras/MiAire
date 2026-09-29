@@ -419,7 +419,7 @@ html, body {
       <div class="control-label">Capas</div>
       <div class="mode-grid">
         <button id="column-toggle" class="toggle-btn active" type="button">Columnas</button>
-        <button id="cloud-toggle" class="toggle-btn" type="button">Nubes</button>
+        <button id="cloud-toggle" class="toggle-btn active" type="button">Nubes</button>
         <button id="halo-toggle" class="toggle-btn active" type="button">Halo</button>
         <button id="metro-toggle" class="toggle-btn" type="button">Metro</button>
       </div>
@@ -3395,6 +3395,9 @@ const LOCATION_TEXT_DARK_ABOVE = 0.6;
 // [[oeste, sur], [este, norte]]. INTRO_EDGE_PX: margen a los lados y arriba.
 const INTRO_BOUNDS = [[-117.5, 14.3], [-86.5, 32.8]];
 const INTRO_EDGE_PX = 30;
+// INTRO_ZOOM_OUT: niveles de zoom que se aleja la vista inicial después de
+// encuadrar México (0 = México justo llenando la pantalla; más = más lejos).
+const INTRO_ZOOM_OUT = 0.6;
 // INTRO_BOTTOM_SPACE_PX: espacio libre abajo durante la intro para el logo y
 // los botones — sube el planeta para que no queden encimados.
 const INTRO_BOTTOM_SPACE_PX = 300;
@@ -3425,6 +3428,7 @@ map.fitBounds(INTRO_BOUNDS, {
   padding: { top: INTRO_EDGE_PX, right: INTRO_EDGE_PX, left: INTRO_EDGE_PX, bottom: INTRO_BOTTOM_SPACE_PX + INTRO_EDGE_PX },
   duration: 0,
 });
+map.setZoom(map.getZoom() - INTRO_ZOOM_OUT);
 
 // --- Nubes 2D y halo: uno se convierte en el otro ---------------------------
 // CLOUD_2D_MIN_ZOOM: umbral. Más cerca se ven las nubes 2D; al alejarse más
@@ -4086,7 +4090,7 @@ const cloudMeshes = {}; // site.id -> { mesh, lngLat }
 const columnHeights = {}; // site.id -> altura actual de la columna (metros)
 let columnsRenderer, columnsScene, columnsCamera;
 let render3DColumns = false; // el mapa abre en 2D; setViewMode(true) lo enciende sin desmontar la capa
-let showClouds = false; // nubes 3D sobre las columnas: apagadas al inicio, se encienden con el botón "Nubes"
+let showClouds = true; // nubes 3D sobre las columnas: encendidas al pasar a 3D; el botón "Nubes" las apaga
 let showColumns = true; // el botón "Ocultar columnas" las esconde, sea cual sea su forma
 
 // site.id -> multiplicador de tamaño de su nube mientras el mouse está
