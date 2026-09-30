@@ -32,14 +32,40 @@
      main.js lo cambia al color del sensor más cercano (updateLocationColor). */
   --intro-accent: #2a6ac2;
   --intro-on-accent: #ffffff; /* texto encima del color (main.js lo oscurece si el color es claro) */
-  /* Tono oscuro del logo con el matiz del sensor más cercano (main.js): color
-     del aviso "Haz clic para…". Empieza en el azul marino del logo. */
+  /* Azul marino del logo con el matiz del sensor más cercano (main.js): color
+     del aviso "Haz clic para…". El logo mismo no cambia de color. */
   --intro-accent-dark: #222855;
   /* Mismo color del sensor más cercano, como "r, g, b" para poder darle
      transparencia: lo usa el fondo del panel. main.js lo actualiza. */
   --location-rgb: 255, 255, 255;
   --panel-tint-alpha: 0.45; /* opacidad del color de fondo del panel (0 a 1) */
   --panel-blur: 18px; /* desenfoque del mapa detrás del panel */
+  /* Íconos de +, − y norte: "none" = gris oscuro de Mapbox; main.js lo
+     cambia a blanco si el color de fondo es oscuro. */
+  --ctrl-icon-filter: brightness(0) invert(1);
+  /* --location-cursor: flecha del mouse del color del sensor más cercano
+     (main.js, arrowCursorCss). */
+}
+
+/* Cursor del color de la ubicación en toda la página, también sobre el mapa
+   (en lugar de la manita de arrastrar de Mapbox). Al pasar sobre una nube o
+   estación sigue apareciendo la mano normal, para saber que se puede hacer clic. */
+html, body,
+#map .mapboxgl-canvas-container.mapboxgl-interactive,
+#map .mapboxgl-canvas-container.mapboxgl-interactive:active {
+  cursor: var(--location-cursor, auto);
+}
+
+/* Botones +, − y norte (NavigationControl) del color de la ubicación. */
+#map .mapboxgl-ctrl-group {
+  background: var(--intro-accent);
+  transition: background-color 0.8s ease;
+}
+#map .mapboxgl-ctrl-group button + button {
+  border-top-color: rgba(255, 255, 255, 0.35);
+}
+#map .mapboxgl-ctrl-group .mapboxgl-ctrl-icon {
+  filter: var(--ctrl-icon-filter);
 }
 
 html, body {
@@ -3376,13 +3402,18 @@ const HORIZON_FOG = {
 // blanco) pasa de esto, el texto encima va oscuro en vez de blanco (p. ej.
 // sobre amarillo).
 const LOCATION_TEXT_DARK_ABOVE = 0.6;
-// El logo (FIGURAS/LOGO.svg) también toma el color: cada uno de sus dos
-// colores conserva su saturación y luminosidad (el "tono") y solo cambia el
-// matiz al del color FIJO de la categoría del sensor más cercano
-// (AQI_LEVELS[].color en colors.js: solo 5 colores posibles). LOGO_COLORS = colores originales del SVG.
-const LOGO_COLORS = ["#5d9ef0", "#222855"]; // azul claro ("mi" y personaje), azul marino ("aire")
-let logoSvgSource = null; // texto del SVG original, se carga una vez
-let logoHue = null; // último matiz aplicado (para no redibujar por cambios mínimos)
+// El logo (FIGURAS/LOGO.svg) NO cambia de color (desde 2026-09-30, Luisa).
+// Su azul marino sí da el tono oscuro del aviso "Haz clic para…", con el
+// matiz del color del sensor más cercano.
+const LOGO_DARK_COLOR = "#222855";
+// Cursor del mouse: flecha rellena del color del sensor más cercano (azul
+// --intro-accent al abrir), con borde blanco. Punta en CURSOR_HOTSPOT.
+const CURSOR_HOTSPOT = [3, 2];
+function arrowCursorCss(color) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M3 2 L3 19 L7.5 14.8 L10.6 21.6 L13.6 20.3 L10.5 13.6 L16.6 13.6 Z" fill="${color}" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${CURSOR_HOTSPOT[0]} ${CURSOR_HOTSPOT[1]}, auto`;
+}
+document.documentElement.style.setProperty("--location-cursor", arrowCursorCss("#2a6ac2"));
 
 // --- Pantalla de inicio ------------------------------------------------------
 // INTRO_CENTER / INTRO_ZOOM: al abrir la página, mapa plano (2D) sobre
@@ -3687,35 +3718,17 @@ function updateLocationColor(collection) {
   const rgb = `${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}`;
   root.setProperty("--intro-accent", `rgb(${rgb})`);
   root.setProperty("--location-rgb", rgb); // fondo semitransparente del panel
-  root.setProperty("--intro-on-accent", luminance > LOCATION_TEXT_DARK_ABOVE ? "var(--intro-text)" : "#ffffff");
+  const darkText = luminance > LOCATION_TEXT_DARK_ABOVE;
+  root.setProperty("--intro-on-accent", darkText ? "var(--intro-text)" : "#ffffff");
+  // Íconos de los botones +, − y norte: los de Mapbox son gris oscuro; sobre
+  // un color oscuro se vuelven blancos.
+  root.setProperty("--ctrl-icon-filter", darkText ? "none" : "brightness(0) invert(1)");
+  root.setProperty("--location-cursor", arrowCursorCss(levelColor));
 
-  // Logo y aviso: matiz del mismo color fijo.
+  // Aviso "Haz clic para…": solo letras, en el azul marino del logo con el
+  // matiz del mismo color fijo.
   const hue = rgbToHsl(r, g, b)[0];
-  // Aviso "Haz clic para…": solo letras, en el tono oscuro del logo recoloreado.
-  root.setProperty("--intro-accent-dark", hslCss(hue, rgbToHsl(...hexToRgb01(LOGO_COLORS[1])).slice(1)));
-  recolorLogo(hue);
-}
-
-// Cambia el matiz del logo de la intro a `hue` (0-360), respetando la
-// saturación y luminosidad de cada color original (ver LOGO_COLORS).
-async function recolorLogo(hue) {
-  if (logoHue != null && Math.abs(hue - logoHue) < 2) return;
-  logoHue = hue;
-  const img = document.querySelector(".intro-logo");
-  if (!img) return;
-  try {
-    // img.src sirve igual con el archivo (index.html) que con el data URI de mapa.html.
-    logoSvgSource ??= await (await fetch(img.src)).text();
-  } catch (error) {
-    console.warn("No se pudo recolorear el logo:", error);
-    return;
-  }
-  let svg = logoSvgSource;
-  for (const color of LOGO_COLORS) {
-    const [, s, l] = rgbToHsl(...hexToRgb01(color));
-    svg = svg.replaceAll(new RegExp(color, "gi"), hslCss(hue, [s, l]));
-  }
-  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  root.setProperty("--intro-accent-dark", hslCss(hue, rgbToHsl(...hexToRgb01(LOGO_DARK_COLOR)).slice(1)));
 }
 
 function hexToRgb01(hex) {
