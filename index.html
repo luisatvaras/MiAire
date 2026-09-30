@@ -32,8 +32,8 @@
      main.js lo cambia al color del sensor más cercano (updateLocationColor). */
   --intro-accent: #2a6ac2;
   --intro-on-accent: #ffffff; /* texto encima del color (main.js lo oscurece si el color es claro) */
-  /* Azul marino del logo con el matiz del sensor más cercano (main.js): color
-     del aviso "Haz clic para…". El logo mismo no cambia de color. */
+  /* Tono oscuro del logo con el matiz del sensor más cercano (main.js): color
+     del aviso "Haz clic para…". Empieza en el azul marino del logo. */
   --intro-accent-dark: #222855;
   /* Mismo color del sensor más cercano, como "r, g, b" para poder darle
      transparencia: lo usa el fondo del panel. main.js lo actualiza. */
@@ -3402,10 +3402,14 @@ const HORIZON_FOG = {
 // blanco) pasa de esto, el texto encima va oscuro en vez de blanco (p. ej.
 // sobre amarillo).
 const LOCATION_TEXT_DARK_ABOVE = 0.6;
-// El logo (FIGURAS/LOGO.svg) NO cambia de color (desde 2026-09-30, Luisa).
-// Su azul marino sí da el tono oscuro del aviso "Haz clic para…", con el
-// matiz del color del sensor más cercano.
-const LOGO_DARK_COLOR = "#222855";
+// El logo (FIGURAS/LOGO.svg, con el monito) también toma el color: cada uno
+// de sus dos colores conserva su saturación y luminosidad (el "tono") y solo
+// cambia el matiz al del color FIJO de la categoría del sensor más cercano
+// (AQI_LEVELS[].color en colors.js: solo 5 colores posibles). LOGO_COLORS =
+// colores originales del SVG.
+const LOGO_COLORS = ["#5d9ef0", "#222855"]; // azul claro ("mi" y monito), azul marino ("aire")
+let logoSvgSource = null; // texto del SVG original, se carga una vez
+let logoHue = null; // último matiz aplicado (para no redibujar por cambios mínimos)
 // Cursor del mouse: flecha rellena del color del sensor más cercano (azul
 // --intro-accent al abrir), con borde blanco. Punta en CURSOR_HOTSPOT.
 const CURSOR_HOTSPOT = [3, 2];
@@ -3725,10 +3729,33 @@ function updateLocationColor(collection) {
   root.setProperty("--ctrl-icon-filter", darkText ? "none" : "brightness(0) invert(1)");
   root.setProperty("--location-cursor", arrowCursorCss(levelColor));
 
-  // Aviso "Haz clic para…": solo letras, en el azul marino del logo con el
-  // matiz del mismo color fijo.
+  // Logo y aviso: matiz del mismo color fijo.
   const hue = rgbToHsl(r, g, b)[0];
-  root.setProperty("--intro-accent-dark", hslCss(hue, rgbToHsl(...hexToRgb01(LOGO_DARK_COLOR)).slice(1)));
+  // Aviso "Haz clic para…": solo letras, en el tono oscuro del logo recoloreado.
+  root.setProperty("--intro-accent-dark", hslCss(hue, rgbToHsl(...hexToRgb01(LOGO_COLORS[1])).slice(1)));
+  recolorLogo(hue);
+}
+
+// Cambia el matiz del logo de la intro a `hue` (0-360), respetando la
+// saturación y luminosidad de cada color original (ver LOGO_COLORS).
+async function recolorLogo(hue) {
+  if (logoHue != null && Math.abs(hue - logoHue) < 2) return;
+  logoHue = hue;
+  const img = document.querySelector(".intro-logo");
+  if (!img) return;
+  try {
+    // img.src sirve igual con el archivo (index.html) que con el data URI de mapa.html.
+    logoSvgSource ??= await (await fetch(img.src)).text();
+  } catch (error) {
+    console.warn("No se pudo recolorear el logo:", error);
+    return;
+  }
+  let svg = logoSvgSource;
+  for (const color of LOGO_COLORS) {
+    const [, s, l] = rgbToHsl(...hexToRgb01(color));
+    svg = svg.replaceAll(new RegExp(color, "gi"), hslCss(hue, [s, l]));
+  }
+  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 function hexToRgb01(hex) {
@@ -3984,6 +4011,9 @@ let columnsRenderer, columnsScene, columnsCamera;
 let render3DColumns = false; // el mapa abre en 2D; setViewMode(true) lo enciende sin desmontar la capa
 let showClouds = true; // nubes 3D sobre las columnas: encendidas al pasar a 3D; el botón "Nubes" las apaga
 let showColumns = true; // el botón "Ocultar columnas" las esconde, sea cual sea su forma
+// columnsGrowth: altura de columnas y nubes 3D, de 0 (hundidas en el suelo)
+// a 1 (normal). Solo baja durante la transición de 3D a 2D (leave3D).
+let columnsGrowth = 1;
 
 // site.id -> multiplicador de tamaño de su nube mientras el mouse está
 // encima (ver wirePopups) — 1 (o ausente) es el tamaño normal.
@@ -4101,7 +4131,7 @@ const sensorColumnsLayer = {
       const facingCamera = Math.atan2(cameraPosition.x - mercator.x, -(cameraPosition.y - mercator.y));
       mesh.matrix
         .makeTranslation(mercator.x, mercator.y, mercator.z)
-        .scale(new THREE.Vector3(scale, scale, scale))
+        .scale(new THREE.Vector3(scale, scale, scale * columnsGrowth))
         .multiply(new THREE.Matrix4().makeRotationZ(facingCamera));
       stack.matrix.copy(mesh.matrix);
     }
@@ -4191,7 +4221,7 @@ const sensorColumnsLayer = {
 
       for (const [id, { mesh, lngLat }] of Object.entries(cloudMeshes)) {
         const elevation = map.queryTerrainElevation(lngLat) ?? 0;
-        const columnTop = columnHeights[id] ?? 0;
+        const columnTop = (columnHeights[id] ?? 0) * columnsGrowth;
         const baseAltitude = elevation + (columnTop + CLOUD_GAP_METERS) * zoomBoost;
 
         // Qué tan lejos está ESTA nube de la cámara, respecto a la
@@ -4212,7 +4242,10 @@ const sensorColumnsLayer = {
         // donde estaría sin hover (misma separación visual con la columna).
         const hoverLift = (CLOUD_HEIGHT_METERS * zoomBoost * (hoverScale - 1)) / 2;
         const mercator = mapboxgl.MercatorCoordinate.fromLngLat(lngLat, baseAltitude + hoverLift);
-        const scale = mercator.meterInMercatorCoordinateUnits() * zoomBoost * hoverScale;
+        // Al final de la transición a 2D la nube 3D se encoge hasta
+        // desaparecer, mientras aparece la nube 2D en su lugar.
+        const shrink = Math.min(1, columnsGrowth / VIEW_CLOUD_SHRINK_FROM);
+        const scale = mercator.meterInMercatorCoordinateUnits() * zoomBoost * hoverScale * shrink;
 
         // Dirección horizontal (en el plano XY de Mercator) de la nube
         // hacia la cámara. buildCloudGeometry() deja el frente de la nube
@@ -4617,9 +4650,84 @@ function prewarm3DShaders() {
 }
 // VIEW_TRANSITION_MS: duración (ms) del giro de cámara al cambiar entre 2D y 3D.
 const VIEW_TRANSITION_MS = 2000;
+// Transición de 3D a 2D (leave3D): cuando a las columnas les queda esta
+// fracción de altura (0.25 = el último cuarto), las nubes 3D empiezan a
+// encogerse y, al mismo tiempo, aparecen las nubes 2D en su lugar (tardan
+// lo que le queda a la transición). Más alto = el cruce empieza antes.
+const VIEW_CLOUD_SHRINK_FROM = 0.25;
+// Duración mínima (ms) de la aparición de las nubes 2D.
+const VIEW_2D_CLOUDS_MIN_FADE_MS = 400;
+let leaving3D = false; // true mientras corre la transición de 3D a 2D
+let viewTransitionId = 0; // para cancelar una transición si se vuelve a pulsar el botón
+
+// De 3D a 2D sin saltos: mientras la cámara se endereza, las montañas se
+// aplanan, las columnas se hunden (con sus nubes 3D bajando encima) y al
+// final las nubes 3D se encogen mientras aparecen las 2D en su lugar.
+function leave3D() {
+  const id = ++viewTransitionId;
+  leaving3D = true;
+  const start = performance.now();
+  const startPitch = Math.max(1, map.getPitch());
+  let clouds2DShown = false;
+  // Las nubes 2D quedan visibles pero transparentes hasta su momento.
+  if (map.getLayer("sensor-cloud-2d")) {
+    map.setPaintProperty("sensor-cloud-2d", "icon-opacity-transition", { duration: 0 });
+    map.setPaintProperty("sensor-cloud-2d", "icon-opacity", 0);
+  }
+  setLayoutVisibility("sensor-cloud-2d", !introActive);
+
+  const step = () => {
+    if (id !== viewTransitionId) return; // se canceló (se volvió a pasar a 3D)
+    const t = Math.min(1, (performance.now() - start) / VIEW_TRANSITION_MS);
+    // Columnas y relieve bajan al mismo paso que la cámara se endereza
+    // (misma curva que el easeTo de Mapbox): 1 = inclinada, 0 = plana.
+    const remaining = t < 1 ? Math.min(1, map.getPitch() / startPitch) : 0;
+    columnsGrowth = remaining;
+    map.setTerrain({ source: "mapbox-dem", exaggeration: TERRAIN_EXAGGERATION * remaining });
+    if (!clouds2DShown && remaining <= VIEW_CLOUD_SHRINK_FROM) {
+      clouds2DShown = true;
+      if (map.getLayer("sensor-cloud-2d")) {
+        const fadeMs = Math.max(VIEW_2D_CLOUDS_MIN_FADE_MS, VIEW_TRANSITION_MS * (1 - t));
+        map.setPaintProperty("sensor-cloud-2d", "icon-opacity-transition", { duration: fadeMs });
+        // Muy lejos se ve el halo, no las nubes (ver updateCloudHaloSwap).
+        map.setPaintProperty("sensor-cloud-2d", "icon-opacity", map.getZoom() < CLOUD_2D_MIN_ZOOM ? 0 : 1);
+      }
+    }
+    if (t < 1) {
+      requestAnimationFrame(step);
+      return;
+    }
+    // Fin: ya en 2D.
+    leaving3D = false;
+    render3DColumns = false;
+    columnsGrowth = 1;
+    map.setTerrain({ source: "mapbox-dem", exaggeration: 0 });
+    if (map.getLayer("sensor-cloud-2d")) {
+      map.setPaintProperty("sensor-cloud-2d", "icon-opacity-transition", { duration: CLOUD_HALO_SWAP_MS });
+    }
+  };
+  requestAnimationFrame(step);
+}
 
 function setViewMode(next3D) {
+  const was3D = is3DMode;
   is3DMode = next3D;
+  viewTransitionId++; // cancela una transición a 2D en curso
+  if (leaving3D && map.getLayer("sensor-cloud-2d")) {
+    map.setPaintProperty("sensor-cloud-2d", "icon-opacity-transition", { duration: CLOUD_HALO_SWAP_MS });
+  }
+  leaving3D = false;
+  columnsGrowth = 1;
+
+  if (was3D && !next3D && terrainPreloaded) {
+    // De 3D a 2D: animado (ver leave3D).
+    document.getElementById("legend").style.display = "none";
+    document.getElementById("view-toggle").textContent = "Ver en 3D";
+    leave3D();
+    map.easeTo({ pitch: 0, bearing: 0, duration: VIEW_TRANSITION_MS });
+    return;
+  }
+
   render3DColumns = next3D;
 
   // En 2D el terreno se deja plano (exageración 0) en vez de apagarlo, una
@@ -4652,7 +4760,7 @@ function updateSensorLayerVisibility() {
 // así que en vez de desactivar cada gesto, dejamos todos activos y
 // forzamos el pitch de vuelta a 0 en cuanto se mueve, venga de donde venga.
 map.on("pitch", () => {
-  if (!is3DMode && map.getPitch() !== 0) map.setPitch(0);
+  if (!is3DMode && !leaving3D && map.getPitch() !== 0) map.setPitch(0);
 });
 
 let activeVariant = null;
