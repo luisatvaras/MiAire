@@ -3431,7 +3431,10 @@ const INTRO_ZOOM = 5.3;
 const SIMULATED_LOCATION = { lng: -100.3161, lat: 25.6866 };
 // Tiempos de la secuencia, en milisegundos.
 const INTRO_LOCATING_MS = 1200; // "Obteniendo tu ubicación…"
-const INTRO_FLY_MS = 4000; // vuelo de México a Monterrey
+const INTRO_FLY_MS = 4000; // vuelo de México al sensor más cercano
+// INTRO_SENSOR_ZOOM: zoom de la vista 2D al llegar al sensor más cercano a
+// la ubicación (el que dio color a los botones). Más alto = más cerca.
+const INTRO_SENSOR_ZOOM = 14;
 
 const map = new mapboxgl.Map({
   container: "map",
@@ -3850,6 +3853,8 @@ map.on("zoom", () => updateCloudHaloSwap());
 // Mientras no haya ubicación, los botones quedan en el azul --intro-accent.
 let userLngLat = null; // la pone "Mi ubicación" (simulada, ver SIMULATED_LOCATION)
 
+let nearestSensor = null; // sensor más cercano a userLngLat (lo pone updateLocationColor)
+
 // Distancia en km sobre la esfera terrestre (haversine).
 function distanceKm(a, b) {
   const toRad = Math.PI / 180;
@@ -3873,6 +3878,7 @@ function updateLocationColor(collection) {
     }
   }
   if (!nearest) return;
+  nearestSensor = nearest;
   // Solo los 5 colores fijos de la categoría (AQI_LEVELS), no el degradado.
   const levelColor = levelForAqi(nearest.properties.aqi).color;
   const [r, g, b] = hexToRgb01(levelColor);
@@ -4963,20 +4969,25 @@ async function startIntroSequence() {
   button.innerHTML = `${LOCATION_PIN_SVG}<span>Ubicación encontrada</span>`;
   await waitForClick("Haz clic para ir a Monterrey");
 
-  // Zoom a la ciudad en 2D, encuadrando todos los sensores (nunca por debajo
-  // del zoom en que aparecen las nubes 2D).
+  // Zoom en 2D al sensor más cercano a la ubicación (el que dio color a los
+  // botones). Si aún no hay lecturas, encuadra todos los sensores.
   document.getElementById("intro").classList.add("hidden");
   introActive = false;
   updateSensorLayerVisibility(); // aparecen las nubes 2D durante el vuelo
-  const bounds = new mapboxgl.LngLatBounds();
-  for (const site of SENSOR_SITES) bounds.extend(site.coords);
   const noPadding = { top: 0, right: 0, bottom: 0, left: 0 };
   map.setPadding(noPadding);
-  const camera = map.cameraForBounds(bounds, { padding: 80 });
+  let target;
+  if (nearestSensor) {
+    target = { center: nearestSensor.geometry.coordinates, zoom: INTRO_SENSOR_ZOOM };
+  } else {
+    const bounds = new mapboxgl.LngLatBounds();
+    for (const site of SENSOR_SITES) bounds.extend(site.coords);
+    const camera = map.cameraForBounds(bounds, { padding: 80 });
+    target = { center: camera.center, zoom: Math.max(camera.zoom, CLOUD_2D_MIN_ZOOM + 0.2) };
+  }
   map.flyTo({
     padding: noPadding,
-    center: camera.center,
-    zoom: Math.max(camera.zoom, CLOUD_2D_MIN_ZOOM + 0.2),
+    ...target,
     pitch: 0,
     bearing: 0,
     duration: INTRO_FLY_MS,
