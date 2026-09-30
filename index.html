@@ -26,7 +26,11 @@
   --text-legend: #cbd3e0;
   --text-status: #7d8aa0;
   --popup-bg: #12151d;
-  --space-neutral: #f4f4f4; /* fondo detrás del mapa */
+  --space-neutral: #f4f4f4; /* fondo detrás del mapa (mapas base claros) */
+  /* Fondo de #map al abrir, mientras el mapa aún no aparece: ≈ el tono
+     promedio del mapa base inicial ("studio", Dark 2D), para que no destelle
+     claro. Luego main.js lo ajusta según el mapa base (updateStudioTint). */
+  --map-loading-bg: rgb(45, 48, 64);
   --intro-text: #1c1f26;
   /* Color de los botones de la intro. Empieza azul; al encontrar la ubicación
      main.js lo cambia al color del sensor más cercano (updateLocationColor). */
@@ -77,10 +81,20 @@ html, body {
   background: var(--body-bg);
 }
 
+/* El mapa aparece con un fundido cuando ya tiene los colores del mapa base
+   (main.js le pone "map-ready"); antes solo se ve el fondo de #map. */
+#map .mapboxgl-canvas {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+#map.map-ready .mapboxgl-canvas {
+  opacity: 1;
+}
+
 #map {
   position: absolute;
   inset: 0;
-  background: var(--space-neutral);
+  background: var(--map-loading-bg);
   transition: background-color 1.2s ease; /* el espacio se tiñe suave al ubicarte */
 }
 
@@ -574,6 +588,23 @@ const HILLSHADE = {
     accent: "rgba(60, 60, 70, 0.15)",
     exaggeration: 0.5,
   },
+  // Con el mapa base "studio" (oscuro, luz de noche): reemplaza highlight y
+  // exaggeration a escala ciudad para que las laderas iluminadas se lean.
+  // Además ahí el sombreado no depende de la luz de noche de Mapbox
+  // (hillshade-emissive-strength 1); sin eso casi no se veía (2026-09-30).
+  // highlight: más alto = laderas más claras. exaggeration: 0 a 1, más alto
+  // = relieve más marcado.
+  studio: {
+    highlight: "rgba(255, 255, 255, 0.55)",
+    exaggeration: 1,
+  },
+  // Con el mapa base "studio" y el relieve activo (3D): con relieve, Mapbox
+  // dibuja el sombreado más claro (el mapa se veía más claro y azulado que
+  // en 2D). Con la luz al 40% el tono promedio queda igual que el 2D (medido
+  // 2026-09-30: 2D [49,51,69], 3D con 0.55 [53,55,73], con 0.40 [49,51,69]).
+  studio3d: {
+    highlight: "rgba(255, 255, 255, 0.4)",
+  },
 };
 
 // ===== aqi.js =====
@@ -728,6 +759,16 @@ const REAL_SENSOR_SITES = [
 
 const SENSOR_SITES = REAL_SENSOR_SITES;
 
+// Estilo de nube de cada sensor: "filled" (rellena) o "outline" (contorno),
+// dibujos de FIGURAS/miaire_nubes_tipos.svg. Servirán para distinguir tipos
+// de sensor; POR AHORA es al azar (Luisa, 2026-09-30), pero fijo por sensor
+// (sale de su id), para que no cambie al recargar la página.
+function cloudStyleFor(siteId) {
+  let hash = 0;
+  for (const char of siteId) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  return hash % 2 === 0 ? "filled" : "outline";
+}
+
 function randomWalk(value, min, max, step) {
   const next = value + (Math.random() - 0.5) * step;
   return Math.max(min, Math.min(max, next));
@@ -744,6 +785,7 @@ function toFeatureCollection(state) {
         id: site.id,
         name: site.name,
         aqi: Math.round(state[site.id]),
+        cloudStyle: cloudStyleFor(site.id),
         updatedAt: new Date().toISOString(),
       },
     })),
@@ -3365,16 +3407,31 @@ const STANDARD_CONFIG = {
 //   cambio que se PUBLIQUE en Studio se ve aquí sin tocar código. Solo se
 //   toma la configuración: capas, niebla, relieve y luces siguen siendo las
 //   de este proyecto.
-const STUDIO_STYLE_URL = "mapbox://styles/luisatvaras/cmuhecyz3009v01qodir63i20";
+const STUDIO_STYLE_URL = "mapbox://styles/luisatvaras/cmuoj9m0x008b01s7dvps8y4s"; // "Dark 2D" (2026-09-30; antes "Faded" cmuheoka3009z01qo23wmetb2 y cmuhecyz3009v01qodir63i20)
 // Mapa base con el que abre la página (el nombre de una variante, o null
 // para el monocromático original). Desde 2026-09-30: el estilo de Studio.
 const DEFAULT_BASEMAP_VARIANT = "studio";
+// FLAT_LAND_VARIANTS: mapas base en los que, SI colorGreenspace y colorLand
+// son el mismo color, la vegetación natural (monte, matorral, pastizal,
+// cultivos) y los parques nacionales se pintan de ese color. Standard no los deja iguales aunque en
+// Studio tengan el mismo color: a partir de colorGreenspace les cambia el
+// matiz (pastizal −25°, cultivo −13°), la claridad (matorral +12%) o la
+// saturación (parques nacionales a la mitad), y los ilumina distinto que la
+// tierra. Por eso se tapan con capas propias (flat-landcover, flat-park).
+const FLAT_LAND_VARIANTS = ["studio"];
 const BASEMAP_VARIANTS = {
   colorWaterGreen: {
     config: { theme: "default", ...GRAY_BASEMAP_COLORS, ...WATER_GREEN_COLORS },
   },
   studio: {
     config: null, // se llena con loadStudioConfig()
+    // Capas "background" propias del estilo de Studio (encima del mapa base,
+    // p. ej. un velo de color semitransparente). Se copian a "studio-tint".
+    backgrounds: [],
+    // Las demás capas propias del estilo (p. ej. calles principales más
+    // claras) y sus fuentes: se copian tal cual (ver syncStudioLayers).
+    layers: [],
+    sources: {},
   },
 };
 
@@ -3382,18 +3439,11 @@ const BASEMAP_VARIANTS = {
 // cerros, pero también agranda los "escalones" de los cerros lejanos.
 const TERRAIN_EXAGGERATION = 1.2;
 
-// Niebla SOLO en el horizonte, blanca: sin ella el cielo sale negro y los
-// cerros lejanos se cortan en seco (se ven sus escalones de baja
-// resolución). Empieza lejos (range[0]) para que la ciudad quede nítida y
-// no se confunda con contaminación. range = [inicio, fin] de la niebla.
-const HORIZON_FOG = {
-  range: [1, 12],
-  color: "#ffffff",
-  "high-color": "#eef0f3",
-  "space-color": "rgba(0, 0, 0, 0)", // transparente: sin globo no se ve el espacio
-  "horizon-blend": 0.08,
-  "star-intensity": 0,
-};
+// Sin niebla (Luisa, 2026-09-30, con el mapa base oscuro "Faded"): antes
+// había una niebla blanca en el horizonte (HORIZON_FOG), que sobre el mapa
+// oscuro hacía una franja clara. Sin niebla, detrás del terreno se ve el
+// fondo de #map (gris claro, no negro) y, con la cámara muy inclinada, el
+// terreno termina en una línea recta en el horizonte.
 
 // Al encontrar la ubicación, los botones de la intro (selector de ciudad,
 // botón de ubicación y aviso "Haz clic para…") y el fondo del panel toman el
@@ -3488,7 +3538,12 @@ function initializeStyle() {
     maxzoom: 14,
   });
   map.setTerrain({ source: "mapbox-dem", exaggeration: TERRAIN_EXAGGERATION });
-  map.setFog(HORIZON_FOG);
+  map.setFog(null);
+
+  // Velo de color del estilo de Studio (su capa "background", ver
+  // updateStudioTint). Va primero: queda encima del mapa base (calles y
+  // nombres incluidos, como en Studio) y debajo de metro, halos y nubes.
+  map.addLayer(studioTintLayer);
 
   // Líneas y estaciones reales del Metrorrey (datos de OpenStreetMap, ver
   // scripts/fetch_metro.py). El color de cada línea sale de la propia data
@@ -3539,6 +3594,39 @@ function initializeStyle() {
     },
   });
 
+  // Vegetación y parques del color de la tierra (ver FLAT_LAND_VARIANTS).
+  // Van en el slot "bottom" antes del sombreado, así el relieve queda encima.
+  map.addSource("flat-landcover", { type: "vector", url: "mapbox://mapbox.mapbox-terrain-v3" });
+  map.addSource("flat-streets", { type: "vector", url: "mapbox://mapbox.mapbox-streets-v8" });
+  const flatLandPaint = {
+    "fill-color": "#000000", // lo pone updateFlatLand() con el colorLand del mapa base
+    // Misma luz que la tierra de Standard (su capa "land"), para que el mismo
+    // color se vea igual.
+    "fill-emissive-strength": ["interpolate", ["linear"], ["zoom"], 13, 0.1, 14, 0.25],
+    "fill-antialias": false,
+  };
+  map.addLayer({
+    id: "flat-landcover",
+    type: "fill",
+    slot: "bottom",
+    source: "flat-landcover",
+    "source-layer": "landcover",
+    layout: { visibility: "none" },
+    // Standard desvanece su vegetación entre zoom 10 y 12: igual aquí.
+    paint: { ...flatLandPaint, "fill-opacity": ["interpolate", ["linear"], ["zoom"], 10, 1, 12, 0] },
+  });
+  map.addLayer({
+    id: "flat-park",
+    type: "fill",
+    slot: "bottom",
+    source: "flat-streets",
+    "source-layer": "landuse_overlay",
+    filter: ["==", ["get", "class"], "national_park"],
+    layout: { visibility: "none" },
+    paint: flatLandPaint,
+  });
+  updateFlatLand();
+
   // Sombreado del relieve (colores en HILLSHADE, colors.js). Fuente propia:
   // Mapbox recomienda no compartir la del terreno 3D.
   map.addSource("hillshade-dem", {
@@ -3562,6 +3650,7 @@ function initializeStyle() {
       "hillshade-exaggeration": byZoom("exaggeration"),
     },
   });
+  updateHillshadeForVariant();
 
   map.addSource("sensors", {
     type: "geojson",
@@ -3591,22 +3680,26 @@ function initializeStyle() {
 
   map.addLayer(sensorColumnsLayer);
 
-  // Ícono plano (SDF) de la misma nube del SVG, para el modo 2D — el color
-  // sale de aqiGradientExpression(), la misma expresión que ya usa el halo
-  // de la base, así que la simbología es consistente entre ambos modos.
-  map.addImage("cloud-icon-2d", buildCloudIconImage(), { sdf: true });
+  // Nubes 2D: los dibujos de FIGURAS/miaire_nubes_tipos.svg (rellena o
+  // contorno según cloudStyle del sensor) en los 5 colores fijos de
+  // categoría (AQI_LEVELS): un ícono por estilo y color, "cloud-filled-0"…
+  for (const style of CLOUD_STYLES) {
+    AQI_LEVELS.forEach((level, i) => {
+      const id = `cloud-${style}-${i}`;
+      if (!map.hasImage(id)) map.addImage(id, drawCloudIcon(style, level.color), { pixelRatio: 2 });
+    });
+  }
   map.addLayer({
     id: "sensor-cloud-2d",
     type: "symbol",
     source: "sensors",
     layout: {
-      "icon-image": "cloud-icon-2d",
+      "icon-image": ["concat", "cloud-", ["get", "cloudStyle"], "-", aqiLevelIndexExpression()],
       "icon-size": 0.3,
       "icon-allow-overlap": true,
       visibility: "none", // el toggle lo activa al entrar a modo 2D
     },
     paint: {
-      "icon-color": aqiGradientExpression(),
       // Nace ya en el estado del zoom actual — si naciera visible, al abrir
       // la página (planeta, muy lejos) se veía una nube que se desvanecía.
       // Después la cambia updateCloudHaloSwap() según el zoom.
@@ -3847,28 +3940,64 @@ function buildCapsuleGeometry(aqi) {
   return applyHeightGradient(geometry, aqi, totalHeight);
 }
 
-// Pila de nubes con INSTANCING: una sola nube delgada (contorno del SVG
+// Pila de nubes con INSTANCING: una nube delgada (contorno del SVG
 // simplificado a STACK_CLOUD_OUTLINE_POINTS, extruido
-// STACK_CLOUD_THICKNESS_METERS) que todas las columnas comparten. Cada pila es
+// STACK_CLOUD_THICKNESS_METERS) que comparten todas las columnas de su estilo. Cada pila es
 // un InstancedMesh que la repite en cada capa con su propio color — una sola
 // llamada de dibujo por sensor, y ante una lectura nueva solo se mueven
 // capas y colores (no se reconstruye geometría).
-const STACK_CLOUD_OUTLINE_POINTS = 32;
-let stackCloudTemplate = null;
+const STACK_CLOUD_OUTLINE_POINTS = 64;
 
-function getStackCloudTemplate() {
-  if (stackCloudTemplate) return stackCloudTemplate;
-  const cx = CLOUD_SVG_VIEWBOX.width / 2;
-  const cy = CLOUD_SVG_VIEWBOX.height / 2;
-  const shape = new THREE.Shape(
-    sampleSvgPathPoints(CLOUD_SVG_PATH_D, STACK_CLOUD_OUTLINE_POINTS).map(([x, y]) => new THREE.Vector2(x - cx, -(y - cy)))
-  );
+// Una plantilla por estilo (ver cloudStyleFor): "filled" = la nube
+// rellena; "outline" = un anillo con la forma de la nube (su borde, con el
+// mismo grosor que las nubes 3D: CLOUD_TYPES_STROKE × CLOUD_3D_STROKE_SCALE).
+// Contorno de FIGURAS/miaire_nubes_tipos.svg (CLOUD_TYPES_PATH_D).
+const stackCloudTemplates = {};
+function getStackCloudTemplate(style = "filled") {
+  if (stackCloudTemplates[style]) return stackCloudTemplates[style];
+  const box = CLOUD_TYPES_BOX;
+  const cx = box.minX + box.width / 2;
+  const cy = box.minY + box.height / 2;
+  const points = sampleSvgPathPoints(CLOUD_TYPES_PATH_D, STACK_CLOUD_OUTLINE_POINTS);
+  // El SVG crece hacia abajo; se voltea Y para que "arriba" quede arriba.
+  const centered = points.map(([x, y]) => [x - cx, -(y - cy)]);
+  const half = (CLOUD_TYPES_STROKE * CLOUD_3D_STROKE_SCALE) / 2;
+  let shape;
+  if (style === "outline") {
+    // Borde exterior e interior: cada punto se mueve hacia afuera / adentro
+    // de la nube la mitad del grosor del borde.
+    const outer = offsetOutline(centered, half);
+    const inner = offsetOutline(centered, -half);
+    shape = new THREE.Shape(outer.map(([x, y]) => new THREE.Vector2(x, y)));
+    shape.holes.push(new THREE.Path(inner.map(([x, y]) => new THREE.Vector2(x, y))));
+  } else {
+    shape = new THREE.Shape(offsetOutline(centered, half).map(([x, y]) => new THREE.Vector2(x, y)));
+  }
   const geometry = new THREE.ExtrudeGeometry(shape, { depth: 1, bevelEnabled: false, curveSegments: 1 });
-  const scale = STACK_CLOUD_WIDTH_METERS / CLOUD_SVG_VIEWBOX.width;
+  const scale = STACK_CLOUD_WIDTH_METERS / box.width;
   // XY = plano horizontal de Mercator; la extrusión (Z) queda como el grosor.
   geometry.scale(scale, scale, STACK_CLOUD_THICKNESS_METERS);
-  stackCloudTemplate = geometry;
+  stackCloudTemplates[style] = geometry;
   return geometry;
+}
+
+// Mueve cada punto de un contorno cerrado `distance` unidades hacia afuera
+// (negativo = hacia adentro), a lo largo de su normal.
+function offsetOutline(points, distance) {
+  let area = 0; // su signo dice si el contorno va en sentido horario o no
+  points.forEach(([x1, y1], k) => {
+    const [x2, y2] = points[(k + 1) % points.length];
+    area += x1 * y2 - x2 * y1;
+  });
+  const outward = area > 0 ? 1 : -1;
+  return points.map(([x, y], k) => {
+    const [px, py] = points[(k - 1 + points.length) % points.length];
+    const [nx, ny] = points[(k + 1) % points.length];
+    const tx = nx - px;
+    const ty = ny - py;
+    const length = Math.hypot(tx, ty) || 1;
+    return [x + (outward * distance * ty) / length, y - (outward * distance * tx) / length];
+  });
 }
 
 // Máximo de capas que puede necesitar una pila (AQI más alto).
@@ -3912,38 +4041,79 @@ function applyHeightGradient(geometry, aqi, totalHeight) {
 }
 
 // --- Nube encima de cada columna --------------------------------------
-// Contorno pegado de FIGURAS/nube.svg (su atributo "d"). Si cambias el
-// SVG, reemplaza este string y el viewBox de abajo.
-const CLOUD_SVG_PATH_D =
-  "M287.57,110.4s-.21-1.97-.43-3.37c-.5-3.18-1.96-10.74-8.23-22.25-2.93-5.37-8.26-14.97-18.48-24.97-2.62-2.56-9.22-8.72-19.19-14.63-5.16-3.06-15.65-8.66-30.13-11.91-5.1-1.15-14.75-2.91-26.98-2.45-3.7.14-13.62.7-25.93,4.2-11.42,3.25-19.59,7.54-22.77,9.28-4.93,2.71-12.49,6.94-20.32,14.72-.73.72-3.75,3.75-7.3,8.31-5.5,7.05-9.03,13.63-11.25,18.4l-4.23,8.76c-6.38,1.15-25.13,4.16-42.04,23.12-3.68,4.13-18.01,18.56-19.97,43.8-.33,4.29-2.44,21.97,5.61,40.12,2.27,5.12,9.92,20.44,26.8,32.58,17.1,12.3,35.09,15,47.65,15.24,78.91,1.53,129.12.61,177.81-.53,10.82-.25,22.46-4.26,35.74-16.64,13.59-12.66,19.85-28.47,21.37-34.34,1.53-5.89,3.46-17.81.53-33.02-1.31-6.77-4.65-22.51-17.34-34.16-5.12-4.7-11.17-8.18-14.01-9.81-7.19-4.13-13.37-6.43-16.64-7.53-3.98-1.35-10.16-2.8-10.16-2.8l-.1-.14Z";
-const CLOUD_SVG_VIEWBOX = { width: 370.04, height: 275.31 };
 
-// Rasteriza la nube en blanco sobre fondo transparente — el formato que
-// Mapbox espera para un ícono SDF (map.addImage con sdf:true), que luego
-// se puede teñir dinámicamente por feature vía la propiedad "icon-color".
-function buildCloudIconImage(size = 128) {
-  const w = size;
-  const h = Math.round(size * (CLOUD_SVG_VIEWBOX.height / CLOUD_SVG_VIEWBOX.width));
+// --- Nubes nuevas (FIGURAS/miaire_nubes_tipos.svg, 2026-09-30) ----------
+// Dos estilos con el MISMO contorno: "filled" (relleno + borde) y "outline"
+// (solo el borde). CLOUD_TYPES_PATH_D es el "d" de la nube verde rellena del
+// SVG; CLOUD_TYPES_STROKE, el grosor de su borde en unidades del SVG. Si
+// cambias el SVG, reemplaza estos dos valores.
+const CLOUD_STYLES = ["filled", "outline"];
+const CLOUD_TYPES_PATH_D =
+  "M313.66,527.7c27.54,0,49.87-22.32,49.87-49.87s-22.33-49.87-49.87-49.87c-7.7,0-14.95,1.8-21.46,4.91-8.48-32.55-37.99-56.61-73.19-56.61-32.02,0-59.34,19.9-70.41,47.99-9.18-6.37-20.31-10.13-32.33-10.13-31.36,0-56.79,25.42-56.79,56.79s25.43,56.79,56.79,56.79h197.39Z";
+const CLOUD_TYPES_STROKE = 12.5;
+// CLOUD_3D_STROKE_SCALE: grosor del borde de las nubes 3D respecto al SVG.
+// En 3D la nube se ve chica (~40 px) y con el borde original (1) las de
+// contorno casi desaparecen. Más alto = borde más grueso.
+const CLOUD_3D_STROKE_SCALE = 2;
+// Caja de la nube (con su borde) en unidades del SVG: se mide una vez.
+const CLOUD_TYPES_BOX = (() => {
+  const points = sampleSvgPathPoints(CLOUD_TYPES_PATH_D, 400);
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const half = (CLOUD_TYPES_STROKE * CLOUD_3D_STROKE_SCALE) / 2; // cabe también el borde más grueso del 3D
+  const minX = Math.min(...xs) - half;
+  const minY = Math.min(...ys) - half;
+  return { minX, minY, width: Math.max(...xs) + half - minX, height: Math.max(...ys) + half - minY };
+})();
+
+// Dibuja la nube de un estilo y color en un canvas de `widthPx` de ancho.
+// strokeScale: multiplica el grosor del borde (1 = el del SVG).
+function drawCloudCanvas(style, color, widthPx, strokeScale = 1) {
+  const scale = widthPx / CLOUD_TYPES_BOX.width;
   const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
+  canvas.width = widthPx;
+  canvas.height = Math.ceil(CLOUD_TYPES_BOX.height * scale);
   const ctx = canvas.getContext("2d");
-  ctx.scale(w / CLOUD_SVG_VIEWBOX.width, h / CLOUD_SVG_VIEWBOX.height);
-  ctx.fillStyle = "#fff";
-  ctx.fill(new Path2D(CLOUD_SVG_PATH_D));
-  return ctx.getImageData(0, 0, w, h);
+  ctx.scale(scale, scale);
+  ctx.translate(-CLOUD_TYPES_BOX.minX, -CLOUD_TYPES_BOX.minY);
+  const path = new Path2D(CLOUD_TYPES_PATH_D);
+  ctx.lineWidth = CLOUD_TYPES_STROKE * strokeScale;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = color;
+  if (style === "filled") {
+    ctx.fillStyle = color;
+    ctx.fill(path);
+  }
+  ctx.stroke(path);
+  return canvas;
+}
+
+// Ancho del ícono 2D en píxeles lógicos (en pantalla lo multiplica
+// "icon-size" de la capa sensor-cloud-2d).
+const CLOUD_ICON_WIDTH_PX = 128;
+
+// Ícono 2D (pixelRatio 2: el doble de resolución para que el borde se vea nítido).
+function drawCloudIcon(style, color) {
+  const canvas = drawCloudCanvas(style, color, CLOUD_ICON_WIDTH_PX * 2);
+  return canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
+}
+
+// Expresión de Mapbox: número de categoría ("0" = Bueno … "4" =
+// Extremadamente malo) según el AQI, con los mismos cortes que AQI_LEVELS.
+function aqiLevelIndexExpression() {
+  const expression = ["step", ["get", "aqi"], "0"];
+  AQI_LEVELS.slice(0, -1).forEach((level, i) => expression.push(level.max + 0.5, String(i + 1)));
+  return expression;
 }
 
 // COLUMN_RADIUS_METERS y sus vecinas controlan la columna; estas de aquí
 // abajo controlan solo la nube — edítalas para ajustar tamaño/volumen/gap.
-const CLOUD_WIDTH_METERS = 300; // ancho real de la nube (eje X del SVG)
-const CLOUD_DEPTH_SVG_UNITS = 45; // "grosor" de la extrusión, en unidades del SVG antes de escalar a metros
-const CLOUD_BEVEL_SVG_UNITS = 14; // redondeo de los bordes — más = más orgánica/inflada
-const CLOUD_BEVEL_SEGMENTS = 8; // suavidad de ese redondeo
+const CLOUD_WIDTH_METERS = 300; // ancho real de la nube 3D (con su borde)
 const CLOUD_GAP_METERS = 190; // separación entre la punta de la columna y la base de la nube
 // Alto real de la nube en metros (eje vertical del SVG, ya escalado) — se
 // usa para compensar la posición cuando crece por hover (ver CLOUD_HOVER_SCALE).
-const CLOUD_HEIGHT_METERS = CLOUD_SVG_VIEWBOX.height * (CLOUD_WIDTH_METERS / CLOUD_SVG_VIEWBOX.width);
+const CLOUD_HEIGHT_METERS = CLOUD_TYPES_BOX.height * (CLOUD_WIDTH_METERS / CLOUD_TYPES_BOX.width);
 
 // Samplea un <path> SVG en una polilínea usando la propia API del navegador
 // (getPointAtLength) — evita tener que escribir un parser de curvas Bézier
@@ -3960,42 +4130,29 @@ function sampleSvgPathPoints(d, sampleCount) {
   return points;
 }
 
-// Construye la geometría de la nube UNA sola vez (misma forma para los 8
-// sensores; solo el color y la posición cambian por sensor). Extruye el
-// contorno del SVG con bisel para que se vea inflada, no un recorte plano.
-// Como la nube siempre gira para encarar la cámara (ver "facing" en
-// render()), no necesita curvarse también en el frente/reverso — de frente
-// un bisel ya se ve redondeado.
+// Nube 3D = tarjeta plana y vertical con el dibujo de la nube (como la 2D),
+// que en render() gira sobre su eje para verse siempre de frente: simula
+// volumen sin serlo. Geometría compartida por todos los sensores; cada uno
+// tiene su material (textura de su estilo + color de su categoría).
 function buildCloudGeometry() {
-  const points = sampleSvgPathPoints(CLOUD_SVG_PATH_D, 160);
-  const cx = CLOUD_SVG_VIEWBOX.width / 2;
-  const cy = CLOUD_SVG_VIEWBOX.height / 2;
-
-  const shape = new THREE.Shape();
-  points.forEach(([x, y], i) => {
-    const px = x - cx;
-    const py = -(y - cy); // el SVG crece hacia abajo; volteamos para que "arriba" quede arriba
-    if (i === 0) shape.moveTo(px, py);
-    else shape.lineTo(px, py);
-  });
-  shape.closePath();
-
-  const geometry = new THREE.ExtrudeGeometry(shape, {
-    depth: CLOUD_DEPTH_SVG_UNITS,
-    bevelEnabled: true,
-    bevelThickness: CLOUD_BEVEL_SVG_UNITS,
-    bevelSize: CLOUD_BEVEL_SVG_UNITS,
-    bevelSegments: CLOUD_BEVEL_SEGMENTS,
-  });
-  geometry.center();
-  geometry.rotateX(Math.PI / 2); // igual que la columna: "arriba" pasa de Y a Z
-
-  // Las unidades del SVG (~370 de ancho) no son metros — reescala todo el
-  // bloque (ancho, profundidad y bisel ya incluidos) a CLOUD_WIDTH_METERS.
-  const scaleToMeters = CLOUD_WIDTH_METERS / CLOUD_SVG_VIEWBOX.width;
-  geometry.scale(scaleToMeters, scaleToMeters, scaleToMeters);
-
+  const geometry = new THREE.PlaneGeometry(CLOUD_WIDTH_METERS, CLOUD_HEIGHT_METERS);
+  geometry.rotateX(Math.PI / 2); // de acostada a parada: el frente mira hacia -Y, "arriba" es Z
   return geometry;
+}
+
+// Textura en blanco de cada estilo; el material la tiñe con el color de la
+// categoría (material.color), así bastan dos texturas para todos.
+const cloudTextures = {};
+function cloudTextureFor(style) {
+  if (!cloudTextures[style]) {
+    const texture = new THREE.CanvasTexture(drawCloudCanvas(style, "#ffffff", 512, CLOUD_3D_STROKE_SCALE));
+    texture.anisotropy = 4;
+    // Premultiplicada: al achicarse, el borde no se mezcla con el negro de
+    // los píxeles transparentes (el contorno salía oscuro y apagado).
+    texture.premultiplyAlpha = true;
+    cloudTextures[style] = texture;
+  }
+  return cloudTextures[style];
 }
 // -----------------------------------------------------------------------
 
@@ -4020,9 +4177,10 @@ let columnsGrowth = 1;
 const cloudHoverScale = {};
 const CLOUD_HOVER_SCALE = 5;
 // CLOUD_ROTATION_DEG: giro extra de las nubes 3D que flotan sobre las
-// columnas, alrededor de su eje vertical. (Las pilas de nubes no lo usan:
-// giran solas hacia la cámara, ver render().)
-const CLOUD_ROTATION_DEG = 180;
+// columnas, alrededor de su eje vertical. 0 = de frente, como la nube 2D
+// (desde 2026-09-30 son tarjetas planas: con 180 se verían al revés, en
+// espejo). Las pilas de nubes no lo usan: giran solas hacia la cámara.
+const CLOUD_ROTATION_DEG = 0;
 
 function mercatorDistance(a, b) {
   const dx = a.x - b.x;
@@ -4067,7 +4225,7 @@ const sensorColumnsLayer = {
       columnsScene.add(columnMesh);
 
       const stackMesh = new THREE.InstancedMesh(
-        getStackCloudTemplate(),
+        getStackCloudTemplate(cloudStyleFor(site.id)),
         new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
         STACK_MAX_LAYERS
       );
@@ -4081,7 +4239,16 @@ const sensorColumnsLayer = {
       if (sharedCloudGeometry) {
         const cloudMesh = new THREE.Mesh(
           sharedCloudGeometry,
-          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55 })
+          // Sin luces (MeshBasic): el color queda exacto, igual que en 2D.
+          new THREE.MeshBasicMaterial({
+            map: cloudTextureFor(cloudStyleFor(site.id)),
+            color: 0xffffff,
+            transparent: true,
+            premultipliedAlpha: true,
+            alphaTest: 0.05,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+          })
         );
         cloudMesh.matrixAutoUpdate = false;
         cloudMesh.visible = showClouds;
@@ -4343,7 +4510,7 @@ function updateColumnMeshes(collection) {
 
     const cloudEntry = cloudMeshes[id];
     if (cloudEntry) {
-      cloudEntry.mesh.material.color.set(gradientColorAt(fractionForAqi(aqi)));
+      cloudEntry.mesh.material.color.set(levelForAqi(aqi).color); // 5 colores fijos, como en 2D
     }
   }
   map.triggerRepaint();
@@ -4619,11 +4786,15 @@ let introActive = true;
 let haloUnlocked = false;
 let terrainPreloaded = false;
 
-// Activa el terreno plano para que Mapbox descargue y procese la elevación
-// antes del primer paso a 3D (se llama al llegar a la vista 2D de la intro).
+// Marca que el relieve ya se precargó (lo descarga prewarm3DShaders, en
+// "Obteniendo tu ubicación…").
+// El relieve está SIEMPRE activo: plano en 2D (exageración 0) y con altura en
+// 3D (2026-09-30). Mapbox dibuja el mapa base de otra manera con relieve que
+// sin él (lo pega al terreno), así que prenderlo y apagarlo hacía brincar los
+// tonos en cada cambio 2D <-> 3D. Con una sola manera de dibujar no brinca;
+// el tono se ajusta con HILLSHADE.studio3d y updateRoadsForTerrain.
 function preloadTerrain() {
   terrainPreloaded = true;
-  if (!is3DMode) map.setTerrain({ source: "mapbox-dem", exaggeration: 0 });
 }
 
 // La PRIMERA vez que se inclina la cámara, el navegador compila los shaders
@@ -4643,7 +4814,7 @@ function prewarm3DShaders() {
   map.jumpTo({ pitch: VIEW_3D_PITCH, bearing: -20 });
   map._render(performance.now());
   map.jumpTo(camera);
-  map.setTerrain({ source: "mapbox-dem", exaggeration: 0 });
+  map.setTerrain(flatTerrain()); // en 2D, relieve plano (ver preloadTerrain)
   render3DColumns = false;
   is3DMode = false;
   map._render(performance.now());
@@ -4659,6 +4830,24 @@ const VIEW_CLOUD_SHRINK_FROM = 0.25;
 const VIEW_2D_CLOUDS_MIN_FADE_MS = 400;
 let leaving3D = false; // true mientras corre la transición de 3D a 2D
 let viewTransitionId = 0; // para cancelar una transición si se vuelve a pulsar el botón
+
+// Relieve plano (2D): activo pero sin altura.
+const flatTerrain = () => ({ source: "mapbox-dem", exaggeration: 0 });
+
+// De 2D a 3D: el relieve crece al mismo paso que se inclina la cámara (de
+// plano a TERRAIN_EXAGGERATION), en vez de aparecer de golpe.
+function enter3D() {
+  const id = viewTransitionId;
+  const start = performance.now();
+  const step = () => {
+    if (id !== viewTransitionId) return; // se canceló (se volvió a 2D)
+    const t = Math.min(1, (performance.now() - start) / VIEW_TRANSITION_MS);
+    const progress = t < 1 ? Math.min(1, map.getPitch() / VIEW_3D_PITCH) : 1;
+    map.setTerrain({ source: "mapbox-dem", exaggeration: TERRAIN_EXAGGERATION * progress });
+    if (t < 1) requestAnimationFrame(step);
+  };
+  step();
+}
 
 // De 3D a 2D sin saltos: mientras la cámara se endereza, las montañas se
 // aplanan, las columnas se hunden (con sus nubes 3D bajando encima) y al
@@ -4701,7 +4890,8 @@ function leave3D() {
     leaving3D = false;
     render3DColumns = false;
     columnsGrowth = 1;
-    map.setTerrain({ source: "mapbox-dem", exaggeration: 0 });
+    map.setTerrain(flatTerrain()); // en 2D, relieve plano (ver preloadTerrain)
+    updateHillshadeForVariant();
     if (map.getLayer("sensor-cloud-2d")) {
       map.setPaintProperty("sensor-cloud-2d", "icon-opacity-transition", { duration: CLOUD_HALO_SWAP_MS });
     }
@@ -4730,15 +4920,11 @@ function setViewMode(next3D) {
 
   render3DColumns = next3D;
 
-  // En 2D el terreno se deja plano (exageración 0) en vez de apagarlo, una
-  // vez precargado (ver preloadTerrain): así el paso a 3D no se traba
-  // cargándolo. Antes de eso (el planeta de la intro) va apagado — con
-  // terreno el vuelo desde el planeta se vuelve muy pesado.
-  map.setTerrain(
-    next3D ? { source: "mapbox-dem", exaggeration: TERRAIN_EXAGGERATION }
-      : terrainPreloaded ? { source: "mapbox-dem", exaggeration: 0 }
-      : null
-  );
+  // Relieve siempre activo: plano en 2D; al pasar a 3D crece poco a poco
+  // junto con la inclinación (enter3D). Ver preloadTerrain.
+  if (next3D && !was3D) enter3D();
+  else map.setTerrain(next3D ? { source: "mapbox-dem", exaggeration: TERRAIN_EXAGGERATION } : flatTerrain());
+  updateHillshadeForVariant();
   updateSensorLayerVisibility();
 
   document.getElementById("legend").style.display = next3D ? "" : "none";
@@ -4773,11 +4959,16 @@ function loadStudioConfig() {
   studioConfigPromise ??= (async () => {
     const path = STUDIO_STYLE_URL.replace("mapbox://styles/", "");
     try {
-      const response = await fetch(`https://api.mapbox.com/styles/v1/${path}?access_token=${mapboxgl.accessToken}`);
+      // fresh=true: la versión recién publicada, no la copia en caché de
+      // Mapbox (sin esto, un Publish en Studio tardaba mucho en verse aquí).
+      const response = await fetch(`https://api.mapbox.com/styles/v1/${path}?access_token=${mapboxgl.accessToken}&fresh=true`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       const style = await response.json();
       const basemap = (style.imports || []).find((i) => i.id === "basemap");
       BASEMAP_VARIANTS.studio.config = { ...(basemap?.config || {}) };
+      BASEMAP_VARIANTS.studio.backgrounds = (style.layers || []).filter((layer) => layer.type === "background");
+      BASEMAP_VARIANTS.studio.layers = (style.layers || []).filter((layer) => layer.type !== "background");
+      BASEMAP_VARIANTS.studio.sources = style.sources || {};
     } catch (error) {
       console.warn("No se pudo cargar el estilo de Studio:", error);
       BASEMAP_VARIANTS.studio.config = {};
@@ -4797,16 +4988,231 @@ async function setBasemapVariant(name) {
   // Primero vuelve todo a lo original y luego aplica la variante — así pasar
   // de una variante a otra no arrastra opciones de la anterior.
   const config = { ...originalConfig, ...variantConfig };
+  // Las calles ya oscurecidas en el mismo paso (ver updateRoadsForTerrain):
+  // si se aplicaran después, se vería un instante el tono sin oscurecer.
+  const darken = name === "studio" && Boolean(map.getTerrain());
+  if (darken) {
+    for (const key of STUDIO_3D_ROAD_KEYS) {
+      const darker = typeof config[key] === "string" && scaleHslLightness(config[key], STUDIO_3D_ROAD_LIGHTNESS);
+      if (darker) config[key] = darker;
+    }
+  }
   const targets = magnifierReady ? [map, magnifierMap] : [map]; // la lupa también combina
   for (const target of targets) {
     for (const [key, value] of Object.entries(config)) target.setConfigProperty("basemap", key, value);
   }
   markActive("[data-variant]", (button) => (button.dataset.variant || null) === name);
+  roadsDarkened = darken;
+  updateFlatLand();
+  updateStudioTint();
+  syncStudioLayers();
+  updateHillshadeForVariant();
 }
 
+// Copia las capas propias del estilo de Studio (menos la de fondo, que va en
+// "studio-tint") solo con el mapa base "studio", cada una en su slot. Sus
+// ids y fuentes llevan el prefijo "studio-" para no chocar con las nuestras.
+// Así, una capa que Luisa agregue en Studio aparece aquí al recargar.
+const STUDIO_PREFIX = "studio-";
+let studioLayerIds = [];
+function syncStudioLayers() {
+  for (const id of studioLayerIds) if (map.getLayer(id)) map.removeLayer(id);
+  studioLayerIds = [];
+  if (activeVariant !== "studio") return;
+  const { layers, sources } = BASEMAP_VARIANTS.studio;
+  for (const layer of layers) {
+    if (!layer.source || !sources[layer.source]) continue; // sin datos que dibujar
+    const sourceId = STUDIO_PREFIX + layer.source;
+    if (!map.getSource(sourceId)) map.addSource(sourceId, sources[layer.source]);
+    const id = STUDIO_PREFIX + layer.id;
+    if (map.getLayer(id)) continue;
+    try {
+      // Sin slot: justo debajo del velo, encima del mapa base.
+      map.addLayer({ ...layer, id, source: sourceId }, layer.slot ? undefined : "studio-tint");
+      studioLayerIds.push(id);
+    } catch (error) {
+      console.warn(`No se pudo copiar la capa "${layer.id}" de Studio:`, error);
+    }
+  }
+}
+
+// Con el mapa base "studio" el sombreado usa HILLSHADE.studio a escala
+// ciudad y su propia luz (no la de noche), y HILLSHADE.studio3d encima si
+// el relieve está activo; con los demás, los valores normales.
+function updateHillshadeForVariant() {
+  if (!map.getLayer("hillshade-layer")) return;
+  const studio = activeVariant === "studio";
+  const withTerrain = Boolean(map.getTerrain());
+  const city = studio
+    ? { ...HILLSHADE.city, ...HILLSHADE.studio, ...(withTerrain ? HILLSHADE.studio3d : {}) }
+    : HILLSHADE.city;
+  const byZoom = (key) => ["interpolate", ["linear"], ["zoom"], HILLSHADE.zooms[0], HILLSHADE.country[key], HILLSHADE.zooms[1], city[key]];
+  map.setPaintProperty("hillshade-layer", "hillshade-highlight-color", byZoom("highlight"));
+  map.setPaintProperty("hillshade-layer", "hillshade-exaggeration", byZoom("exaggeration"));
+  map.setPaintProperty("hillshade-layer", "hillshade-emissive-strength", studio ? 1 : 0);
+  updateRoadsForTerrain(studio && withTerrain);
+}
+
+// Calles de Standard en 3D con el mapa base "studio": el velo azul (en el
+// slot "bottom", debajo de las calles en 2D) no se puede pegar al relieve, así
+// que en 3D queda ENCIMA de las calles y las lava (la cuadrícula casi
+// desaparecía). Para compensar, en 3D se oscurecen: su claridad (la L de
+// hsl) se multiplica por STUDIO_3D_ROAD_LIGHTNESS (0.25 = a una cuarta
+// parte; 1 = sin cambio), partiendo del tono que tengan en Studio.
+const STUDIO_3D_ROAD_LIGHTNESS = 0.25;
+const STUDIO_3D_ROAD_KEYS = ["colorRoads", "colorTrunks", "colorMotorways"];
+let roadsDarkened = false;
+function updateRoadsForTerrain(darken) {
+  if (darken === roadsDarkened) return;
+  const studioConfig = BASEMAP_VARIANTS.studio.config || {};
+  for (const key of STUDIO_3D_ROAD_KEYS) {
+    const color = studioConfig[key];
+    if (typeof color !== "string") continue;
+    const value = darken ? scaleHslLightness(color, STUDIO_3D_ROAD_LIGHTNESS) : color;
+    if (value) map.setConfigProperty("basemap", key, value);
+  }
+  roadsDarkened = darken;
+}
+
+// "hsl(235, 16%, 27%)" o "hsla(…, 0.5)" con la claridad multiplicada por
+// `factor`; null si el color no está en hsl/hsla.
+function scaleHslLightness(color, factor) {
+  const match = color.match(/^hsla?\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*(?:,\s*([\d.]+)\s*)?\)$/);
+  if (!match) return null;
+  const [, h, sat, l, a] = match;
+  const lightness = Math.round(Number(l) * factor * 10) / 10;
+  return a != null ? `hsla(${h}, ${sat}%, ${lightness}%, ${a})` : `hsl(${h}, ${sat}%, ${lightness}%)`;
+}
+
+// Velo de color encima del mapa base: copia la capa "background" del estilo
+// de Studio (p. ej. hsla(211, 84%, 30%, 0.27)), solo con el mapa base
+// "studio". Se dibuja con WebGL directo en la pantalla, no como capa de
+// Mapbox: con el relieve 3D, Mapbox pega al terreno todas las capas planas y
+// les aplica el filtro del tema (monocromático = gris), así que un velo azul
+// de Mapbox salía gris en 3D (medido 2026-09-30; "fill-color-use-theme" no lo
+// evita). Así también tiñe el cielo arriba del horizonte.
+let studioTintRgba = null; // [r, g, b, a] de 0 a 1, o null = sin velo
+// STUDIO_SKY_COLOR: fondo detrás del terreno (el "cielo", sin niebla) con el
+// mapa base "studio". Gris oscuro = el de la tierra de "Dark 2D" sin velo,
+// así con el velo encima el cielo queda del mismo azul que el mapa.
+const STUDIO_SKY_COLOR = "rgb(31, 31, 31)";
+
+const studioTintLayer = {
+  id: "studio-tint",
+  type: "custom",
+  renderingMode: "2d",
+  onAdd(mapInstance, gl) {
+    const compile = (type, source) => {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, source);
+      gl.compileShader(shader);
+      return shader;
+    };
+    this.program = gl.createProgram();
+    gl.attachShader(this.program, compile(gl.VERTEX_SHADER, "attribute vec2 p; void main() { gl_Position = vec4(p, 0.0, 1.0); }"));
+    gl.attachShader(this.program, compile(gl.FRAGMENT_SHADER, "precision mediump float; uniform vec4 c; void main() { gl_FragColor = vec4(c.rgb * c.a, c.a); }"));
+    gl.linkProgram(this.program);
+    this.buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+    // Un triángulo que cubre toda la pantalla.
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  },
+  render(gl) {
+    if (!studioTintRgba) return;
+    gl.useProgram(this.program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+    const position = gl.getAttribLocation(this.program, "p");
+    gl.enableVertexAttribArray(position);
+    gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform4fv(gl.getUniformLocation(this.program, "c"), studioTintRgba);
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // color premultiplicado, como Mapbox
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  },
+};
+
+// La capa propia que sigue a `id` (para volver a poner el velo en su lugar,
+// debajo de metro, halos y nubes).
+function layerAfter(id) {
+  const layers = map.getStyle().layers.map((layer) => layer.id);
+  const index = layers.indexOf(id);
+  const next = index >= 0 ? layers[index + 1] : undefined;
+  return next && map.getLayer(next) ? next : undefined;
+}
+
+// Cualquier color CSS (hsla, rgba, #hex) -> [r, g, b, a] de 0 a 1.
+function cssColorToRgba01(color) {
+  const ctx = document.createElement("canvas").getContext("2d");
+  ctx.fillStyle = "rgba(0, 0, 0, 0)";
+  ctx.fillStyle = color;
+  const match = ctx.fillStyle.match(/[\d.]+/g); // "#rrggbb" o "rgba(r, g, b, a)"
+  if (ctx.fillStyle.startsWith("#")) {
+    const n = parseInt(ctx.fillStyle.slice(1), 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255, 1];
+  }
+  return [match[0] / 255, match[1] / 255, match[2] / 255, match[3] != null ? Number(match[3]) : 1];
+}
+
+function updateStudioTint() {
+  const background = activeVariant === "studio" ? BASEMAP_VARIANTS.studio.backgrounds?.[0] : null;
+  const color = background?.paint?.["background-color"];
+  const opacity = background?.paint?.["background-opacity"];
+  // Mismo slot que en Studio: "bottom" = debajo de calles y nombres (no los
+  // tiñe); sin slot = encima de todo el mapa base.
+  const slot = background?.slot;
+  if (map.getLayer("studio-tint") && (map.getSlot("studio-tint") ?? undefined) !== slot) {
+    const before = layerAfter("studio-tint"); // antes de quitarlo, para volver a ponerlo ahí
+    map.removeLayer("studio-tint");
+    map.addLayer(slot ? { ...studioTintLayer, slot } : studioTintLayer, before);
+  }
+  studioTintRgba = null;
+  if (typeof color === "string") {
+    studioTintRgba = cssColorToRgba01(color);
+    if (typeof opacity === "number") studioTintRgba[3] *= opacity;
+  }
+  map.getContainer().style.backgroundColor = studioTintRgba ? STUDIO_SKY_COLOR : "var(--space-neutral)";
+  map.triggerRepaint();
+}
+
+// Prende las capas flat-landcover / flat-park solo en los mapas base de
+// FLAT_LAND_VARIANTS, con el color de tierra de ese mapa base.
+function updateFlatLand() {
+  let color = null;
+  let greenspace = null;
+  try {
+    color = map.getConfigProperty("basemap", "colorLand");
+    greenspace = map.getConfigProperty("basemap", "colorGreenspace");
+  } catch {
+    // el mapa base aún no carga
+  }
+  const sameColor = (a, b) => String(a).replace(/\s/g, "").toLowerCase() === String(b).replace(/\s/g, "").toLowerCase();
+  const on = FLAT_LAND_VARIANTS.includes(activeVariant) && color != null && sameColor(color, greenspace);
+  for (const id of ["flat-landcover", "flat-park"]) {
+    if (!map.getLayer(id)) continue;
+    map.setLayoutProperty(id, "visibility", on && color ? "visible" : "none");
+    if (color) map.setPaintProperty(id, "fill-color", color);
+  }
+}
+
+// Al abrir, el mapa queda invisible (style.css: #map sin "map-ready") hasta
+// que tiene los colores del mapa base inicial — si no, durante ~0.6 s se
+// veían los colores por defecto de Mapbox (calles claras) y luego cambiaban.
+// MAP_REVEAL_TIMEOUT_MS: si algo tarda (p. ej. sin internet), se muestra igual.
+const MAP_REVEAL_TIMEOUT_MS = 5000;
+function revealMap() {
+  document.getElementById("map").classList.add("map-ready");
+}
+setTimeout(revealMap, MAP_REVEAL_TIMEOUT_MS);
+
 function wireVariantToggles() {
-  if (DEFAULT_BASEMAP_VARIANT) setBasemapVariant(DEFAULT_BASEMAP_VARIANT);
-  else loadStudioConfig(); // que ya esté lista cuando se pulse el botón
+  const initial = DEFAULT_BASEMAP_VARIANT ? setBasemapVariant(DEFAULT_BASEMAP_VARIANT) : loadStudioConfig();
+  // Se muestra en cuanto el mapa se dibuja con esos colores (el cuadro
+  // siguiente a aplicarlos), sin esperar a que carguen todos los mosaicos.
+  initial.finally(() => {
+    map.triggerRepaint();
+    map.once("render", () => requestAnimationFrame(revealMap));
+  });
   for (const button of document.querySelectorAll("[data-variant]")) {
     button.addEventListener("click", () => setBasemapVariant(button.dataset.variant || null));
   }
