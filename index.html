@@ -498,6 +498,49 @@ html, body {
   color: #ffffff;
   white-space: nowrap;
 }
+/* Cambio de color (main.js, colorSymButton): copia del botón ya pintada,
+   encima de la imagen, que se revela desde el borde hacia el centro con una
+   máscara radial difuminada (--seep va de 130% a 0%). */
+@property --seep {
+  syntax: "<percentage>";
+  inherits: false;
+  initial-value: 0%;
+}
+#intro-sym .sym-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  pointer-events: none;
+  --seep: 0%;
+  -webkit-mask-image: radial-gradient(farthest-corner at 50% 50%, transparent calc(var(--seep) - 35%), #000 var(--seep));
+  mask-image: radial-gradient(farthest-corner at 50% 50%, transparent calc(var(--seep) - 35%), #000 var(--seep));
+  animation: sym-seep 2.4s cubic-bezier(0.45, 0, 0.25, 1) both;
+}
+@keyframes sym-seep {
+  from { --seep: 135%; }
+  to { --seep: 0%; }
+}
+#intro-sym .sym-boton-txt {
+  z-index: 1; /* encima de .sym-fill */
+  transition: opacity 0.35s ease, color 0.9s ease;
+}
+#intro-sym .sym-boton-txt.fading {
+  opacity: 0;
+}
+#intro-sym .sym-ring {
+  z-index: 2;
+}
+/* el contorno se vuelve del color del aire antes de entrar (settleSymRing) */
+#intro-sym .sym-ring-solid {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+#intro-sym .sym-ring-solid.on {
+  opacity: 1;
+}
 #intro-sym .sym-boton:disabled {
   cursor: progress;
 }
@@ -512,7 +555,7 @@ html, body {
   -webkit-mask-repeat: no-repeat;
   mask-repeat: no-repeat;
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.7s ease;
 }
 #intro-sym .sym-ring.on {
   opacity: 1;
@@ -1326,6 +1369,16 @@ function cloudStyleFor(siteId) {
   return hash % 2 === 0 ? "filled" : "outline";
 }
 
+// Distancia al cuadrado en grados (lng corregida por la latitud), solo para
+// ordenar. Lo vertical cuenta MOCK_SCREEN_ASPECT veces más (la pantalla es
+// más ancha que alta): así los más "cercanos" son los que caben en pantalla.
+const MOCK_SCREEN_ASPECT = 1.6;
+function distance2([lng1, lat1], [lng2, lat2]) {
+  const dx = (lng1 - lng2) * Math.cos((lat1 * Math.PI) / 180);
+  const dy = (lat1 - lat2) * MOCK_SCREEN_ASPECT;
+  return dx * dx + dy * dy;
+}
+
 function randomWalk(value, min, max, step) {
   const next = value + (Math.random() - 0.5) * step;
   return Math.max(min, Math.min(max, next));
@@ -1351,16 +1404,42 @@ function toFeatureCollection(state) {
 
 // Starts an in-browser simulation and calls `onUpdate` with a GeoJSON
 // FeatureCollection every `intervalMs`. Returns a `stop()` function.
-function startMockFeed(onUpdate, intervalMs = 4000) {
+// Para que siempre se vea toda la escala, MOCK_PER_LEVEL sensores quedan
+// fijos en cada nivel de AQI_LEVELS: su lectura camina solo dentro del rango
+// de ese nivel (el último, hasta MOCK_AQI_MAX). Los demás caminan libres.
+// Con `pinNear` ([lng, lat], la ubicación de la persona) se eligen entre los
+// más cercanos a ese punto (el de la persona incluido), para que se vean en
+// la vista acercada del final de la intro; qué nivel le toca a cada uno
+// cambia en cada carga.
+const MOCK_PER_LEVEL = 1;
+const MOCK_AQI_MAX = 280;
+function startMockFeed(onUpdate, intervalMs = 4000, { pinNear } = {}) {
   const state = Object.fromEntries(
     SENSOR_SITES.map((site) => [site.id, 40 + Math.random() * 80])
   );
+  const ranges = {}; // id -> [mín, máx] de los sensores fijos en un nivel
+  const pinCount = AQI_LEVELS.length * MOCK_PER_LEVEL;
+  const byDistance = pinNear
+    ? [...SENSOR_SITES]
+        .sort((a, b) => distance2(a.coords, pinNear) - distance2(b.coords, pinNear))
+        .slice(0, pinCount)
+    : [...SENSOR_SITES];
+  const shuffled = byDistance.sort(() => Math.random() - 0.5);
+  AQI_LEVELS.forEach((level, i) => {
+    const min = i === 0 ? 5 : AQI_LEVELS[i - 1].max + 1;
+    const max = Math.min(level.max, MOCK_AQI_MAX);
+    for (const site of shuffled.splice(0, MOCK_PER_LEVEL)) {
+      ranges[site.id] = [min, max];
+      state[site.id] = min + Math.random() * (max - min);
+    }
+  });
 
   onUpdate(toFeatureCollection(state));
 
   const timer = setInterval(() => {
     for (const site of SENSOR_SITES) {
-      state[site.id] = randomWalk(state[site.id], 5, 280, 25);
+      const [min, max] = ranges[site.id] || [5, MOCK_AQI_MAX];
+      state[site.id] = randomWalk(state[site.id], min, max, 25);
     }
     onUpdate(toFeatureCollection(state));
   }, intervalMs);
@@ -4361,7 +4440,7 @@ function initializeStyle() {
     startMockFeed((collection) => {
       lastSensorCollection = collection;
       applySensorUpdate(collection);
-    });
+    }, undefined, { pinNear: [SIMULATED_LOCATION.lng, SIMULATED_LOCATION.lat] }); // toda la escala cerca de la persona
   } else if (lastSensorCollection) {
     // La fuente "sensors" es nueva (el estilo se acaba de recargar) — hay
     // que repoblarla ya, no esperar al próximo tick del feed.
@@ -4729,7 +4808,8 @@ function updateLocationColor(collection) {
   const darkText = luminance > LOCATION_TEXT_DARK_ABOVE;
   root.setProperty("--intro-on-accent", darkText ? "var(--intro-text)" : "#ffffff");
   root.setProperty("--location-cursor", arrowCursorCss(levelColor));
-  if (symButtonFound) colorSymButton(levelColor, darkText ? "#1c1f26" : "#ffffff");
+  symButtonColors = [levelColor, darkText ? "#1c1f26" : "#ffffff"];
+  if (symButtonFound) colorSymButton(...symButtonColors);
 
   // Aviso y texto del botón: tono oscuro con el matiz del mismo color fijo.
   const hue = rgbToHsl(r, g, b)[0];
@@ -6305,6 +6385,12 @@ async function waitForClick(message, variant = "") {
 // original es azul marino (#222855) con flecha blanca: se recolorea su texto.
 let symButtonFound = false; // true desde "Ubicación encontrada"
 let symButtonKey = null; // color aplicado (para no rehacerlo en cada lectura)
+let symButtonColors = null; // [color, tinta] del aire de la persona (updateLocationColor)
+// Cambio de color del botón: el color nuevo se "mete" desde el borde hacia
+// el centro, difuminado (una copia del botón ya pintada, encima, con una
+// máscara radial que se cierra: .sym-fill en style.css). SYM_SEEP_MS: lo que
+// tarda en llenarse.
+const SYM_SEEP_MS = 2400;
 let symButtonSvg = null; // texto del SVG original
 async function colorSymButton(color, ink) {
   const img = document.querySelector("#sym-open img");
@@ -6313,8 +6399,45 @@ async function colorSymButton(color, ink) {
   const original = await getSymButtonSvg();
   if (!original) return;
   const svg = original.replace(/fill: #222855;/g, `fill: ${color};`).replace(/stroke: #fff;/g, `stroke: ${ink};`);
-  img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   document.querySelector("#sym-open .sym-boton-txt").style.color = ink;
+  // Copia ya pintada encima, que se llena desde el borde; luego queda como la imagen.
+  for (const old of document.querySelectorAll("#sym-open .sym-fill")) old.remove();
+  const fill = document.createElement("img");
+  fill.className = "sym-fill";
+  fill.alt = "";
+  fill.src = src;
+  fill.style.animationDuration = `${SYM_SEEP_MS}ms`;
+  img.after(fill);
+  await new Promise((resolve) => setTimeout(resolve, SYM_SEEP_MS));
+  img.src = src;
+  await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  if (symButtonKey === color + ink) fill.remove();
+}
+
+// Antes de que el color entre al botón, el contorno de colores se vuelve
+// del color del aire (SYM_RING_SETTLE_MS).
+const SYM_RING_SETTLE_MS = 600;
+async function settleSymRing(color) {
+  for (const ring of document.querySelectorAll("#sym-open .sym-ring")) {
+    const solid = document.createElement("span");
+    solid.className = "sym-ring-solid";
+    solid.style.background = color;
+    solid.style.transitionDuration = `${SYM_RING_SETTLE_MS}ms`;
+    ring.append(solid);
+    void solid.offsetWidth;
+    solid.classList.add("on");
+  }
+  await wait(SYM_RING_SETTLE_MS);
+}
+
+// Cambia el texto del botón con un fundido (sale, cambia, entra).
+async function fadeSymButtonText(text) {
+  const label = document.querySelector("#sym-open .sym-boton-txt");
+  label.classList.add("fading");
+  await wait(350);
+  label.textContent = text;
+  label.classList.remove("fading");
 }
 
 // Texto del SVG original del botón (una vez; antes de recolorearlo).
@@ -6391,7 +6514,7 @@ async function startSymRing() {
 function stopSymRing() {
   for (const ring of document.querySelectorAll("#sym-open .sym-ring")) {
     ring.classList.remove("on");
-    setTimeout(() => ring.remove(), 600);
+    setTimeout(() => ring.remove(), 800);
   }
 }
 
@@ -6473,14 +6596,19 @@ async function startIntroSequence() {
 
   // "Obtiene" la ubicación y pinta el espacio con el sensor más cercano.
   userLngLat = SIMULATED_LOCATION;
-  symButtonFound = LOCATE_BUTTON_HIDDEN; // el botón de la simbología toma el color del sensor
   highlightHeld = LOCATE_BUTTON_HIDDEN; // el resalte del sensor espera (ver abajo)
   if (lastSensorCollection) updateLocationColor(lastSensorCollection);
   button.innerHTML = `${LOCATION_PIN_SVG}<span>Ubicación encontrada</span>`;
   if (LOCATE_BUTTON_HIDDEN) {
     // Con la ubicación, el botón pasa a "Explorar": acerca el mapa al sensor más cercano.
-    stopSymRing(); // el contorno se va; el botón ya está del color del sensor
-    symText.textContent = "Explorar";
+    // El contorno se vuelve del color del aire y ese color se mete al botón
+    // (desde el borde, difuminado); a media entrada el contorno se va.
+    if (symButtonColors) await settleSymRing(symButtonColors[0]);
+    symButtonFound = true; // el botón de la simbología toma el color del sensor
+    const filled = symButtonColors ? colorSymButton(...symButtonColors) : Promise.resolve();
+    fadeSymButtonText("Explorar");
+    setTimeout(stopSymRing, SYM_SEEP_MS * 0.5);
+    await filled;
     // Primero se pinta el botón; SYM_SWAP_DELAY_MS después cambia el texto
     // de arriba y el botón baja a su nuevo lugar.
     await wait(SYM_SWAP_DELAY_MS);
