@@ -138,7 +138,11 @@ html, body,
   color: var(--card-color, #a52a8b);
   font-weight: 800;
 }
+#sensor-card > * {
+  z-index: 1; /* el texto va encima del monito, como en el diseño */
+}
 #sensor-card .sc-monito {
+  z-index: 0;
   height: auto;
 }
 
@@ -3996,7 +4000,10 @@ function cloudOpacity(far) {
 // SENSOR_CARD_OFFSET: [derecha, arriba] en px desde el centro del sensor
 // hasta la esquina inferior izquierda de la tarjeta.
 const SENSOR_CARD_WIDTH = 270;
-const SENSOR_CARD_OFFSET = [18, 22];
+// Del diseño "sensor aire highlight.svg": la esquina inferior izquierda de
+// la tarjeta queda a 0.40 del radio del círculo a la derecha y 0.51 arriba
+// de su centro (21.4 y 27.4 con radio 53.5) → con radio 34 ≈ [14, 17] px.
+const SENSOR_CARD_OFFSET = [14, 17];
 let sensorCardEl = null;
 let sensorCardKey = null; // qué muestra ahora (para no rehacerla en cada lectura)
 const placeNames = {}; // id del sensor -> "Colonia, Municipio" (Mapbox, una vez por sensor)
