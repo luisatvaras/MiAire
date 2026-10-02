@@ -196,7 +196,7 @@ html, body,
   font-size: calc(12.5 * var(--u));
   font-weight: 700;
   color: var(--card-color, #a52a8b);
-  background: #ffffff;
+  background: rgba(255, 255, 255, 0.6); /* 60% de opacidad */
   border-radius: 999px;
 }
 #sensor-card .sc-value {
@@ -499,27 +499,18 @@ html, body {
   white-space: nowrap;
 }
 /* Cambio de color (main.js, colorSymButton): copia del botón ya pintada,
-   encima de la imagen, que se revela desde el borde hacia el centro con una
-   máscara radial difuminada (--seep va de 130% a 0%). */
-@property --seep {
-  syntax: "<percentage>";
-  inherits: false;
-  initial-value: 0%;
-}
+   encima de la imagen, que aparece con un fundido parejo. */
 #intro-sym .sym-fill {
   position: absolute;
   left: 0;
   top: 0;
   width: 100%;
   pointer-events: none;
-  --seep: 0%;
-  -webkit-mask-image: radial-gradient(farthest-corner at 50% 50%, transparent calc(var(--seep) - 35%), #000 var(--seep));
-  mask-image: radial-gradient(farthest-corner at 50% 50%, transparent calc(var(--seep) - 35%), #000 var(--seep));
-  animation: sym-seep 2.4s cubic-bezier(0.45, 0, 0.25, 1) both;
+  animation: sym-seep 2.4s ease-in-out both;
 }
 @keyframes sym-seep {
-  from { --seep: 135%; }
-  to { --seep: 0%; }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 #intro-sym .sym-boton-txt {
   z-index: 1; /* encima de .sym-fill */
@@ -4503,7 +4494,7 @@ const SENSOR_HIGHLIGHT_DELAY_MS = 900;
 const OTHER_CLOUDS_FADE_MS = 1800;
 // INTRO_3D_ZOOM_OUT: cuánto se aleja la cámara (niveles de zoom) al pasar a
 // 3D al final de la intro.
-const INTRO_3D_ZOOM_OUT = 0.8;
+const INTRO_3D_ZOOM_OUT = 1.5;
 // SENSOR_TABS_OPEN_DELAY_MS: pausa entre el paso a 3D y que se desplieguen
 // las pestañas de la tarjeta.
 const SENSOR_TABS_OPEN_DELAY_MS = 1100;
@@ -6386,10 +6377,9 @@ async function waitForClick(message, variant = "") {
 let symButtonFound = false; // true desde "Ubicación encontrada"
 let symButtonKey = null; // color aplicado (para no rehacerlo en cada lectura)
 let symButtonColors = null; // [color, tinta] del aire de la persona (updateLocationColor)
-// Cambio de color del botón: el color nuevo se "mete" desde el borde hacia
-// el centro, difuminado (una copia del botón ya pintada, encima, con una
-// máscara radial que se cierra: .sym-fill en style.css). SYM_SEEP_MS: lo que
-// tarda en llenarse.
+// Cambio de color del botón: el color nuevo aparece con un fundido parejo
+// (una copia del botón ya pintada, encima: .sym-fill en style.css).
+// SYM_SEEP_MS: lo que tarda el fundido.
 const SYM_SEEP_MS = 2400;
 let symButtonSvg = null; // texto del SVG original
 async function colorSymButton(color, ink) {
