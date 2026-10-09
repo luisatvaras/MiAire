@@ -2535,9 +2535,18 @@ body.has-location .ld-marquee-enter {
   body.has-location .ld-marquee-enter { animation: none; }
 }
 
+/* Mientras carga la foto de la landing, fondo azul fuerte (no el azul claro) */
+body.landing-b #landing {
+  background-color: #222855;
+}
+body.landing-b #landing {
+  background-size: cover; /* desde el primer cuadro (antes saltaba de 100% auto a cover) */
+  background-position: center;
+}
+
     </style>
   </head>
-  <body>
+  <body class="landing-b"><!-- landing "Conoce" desde el primer cuadro (si no, se veía un instante la foto sin su velo) -->
     <div id="map"></div>
 
     <div id="magnifier"></div>
