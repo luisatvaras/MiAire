@@ -9477,7 +9477,7 @@ const linear = (c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
 const relLum = ([r, g, b]) => 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
 function cursorColorOver(bg) {
   // (en la landing no: ahí el color se perdía sobre la foto; solo en el mapa)
-  if (document.body.classList.contains("has-location") && !document.body.classList.contains("on-landing")) {
+  if (nearestSensorId && !document.body.classList.contains("on-landing")) {
     const accent = parseCssColor(getComputedStyle(document.documentElement).getPropertyValue("--intro-accent"));
     if (accent) {
       const [a, b] = [relLum(accent), relLum(bg)];
@@ -9590,9 +9590,9 @@ function setupCustomCursor() {
     // Capas: el cursor en el color para el fondo (foto o mapa) y, encima, una
     // copia por cada panel o botón que toca, recortada a su forma y en el color
     // para ese panel: así solo la parte del cursor que está sobre él cambia.
-    // Con la ubicación, sobre la foto o el mapa el cursor se queda del color
-    // del aire (no cambia con el fondo); sobre botones y paneles sí cambia.
-    const accent = document.body.classList.contains("has-location") && !document.body.classList.contains("on-landing") && parseCssColor(getComputedStyle(document.documentElement).getPropertyValue("--intro-accent"));
+    // En el mapa (ya con sensor detectado), sobre el mapa el cursor se queda del
+    // color del aire (no cambia con el fondo); sobre botones y paneles sí cambia.
+    const accent = nearestSensorId && !document.body.classList.contains("on-landing") && parseCssColor(getComputedStyle(document.documentElement).getPropertyValue("--intro-accent"));
     const base = accent ? `rgb(${accent.slice(0, 3).map((c) => Math.round(c * 255)).join(", ")})` : cursorColorOver(groundColorAt(x, y));
     const layers = [{ color: base, clip: "none" }];
     for (const zone of cursorZones(left, top, size)) layers.push(zone);
