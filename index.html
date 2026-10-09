@@ -8396,9 +8396,9 @@ if (LOCATE_BUTTON_HIDDEN) {
   const introStops = () => [0, frameScroll(0), frameScroll(1)];
   const nextStop = () => introStops().find((stop) => stop > scroller.scrollTop + 5);
   const syncAdvance = () => scroller.classList.toggle("can-advance", !introScreenLocked && nextStop() !== undefined);
-  // Con el cursor en la franja de arriba de la pantalla (INTRO_BACK_ZONE, debajo
-  // de la barra) la flecha apunta hacia arriba y el clic regresa a la anterior.
-  const INTRO_BACK_ZONE = 0.22;
+  // Con el cursor en la mitad de arriba de la pantalla (INTRO_BACK_ZONE)
+  // la flecha apunta hacia arriba y el clic regresa a la anterior.
+  const INTRO_BACK_ZONE = 0.5; // mitad de arriba: regresar; mitad de abajo: bajar (antes 0.22)
   const prevStop = () => introStops().filter((stop) => stop < scroller.scrollTop - 5).pop();
   let pointerY = null;
   const syncBack = () => scroller.classList.toggle("go-back",
