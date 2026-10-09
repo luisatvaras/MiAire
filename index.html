@@ -2517,6 +2517,24 @@ body.band-under-bar:not(.\_):not(.\_):not(.\_):not(.\_):not(.\_):not(.\_) #topba
   mask: var(--logo) no-repeat center / contain;
 }
 
+/* Letrero (2026-10-09, sin trabas): recorrido y entrada son animaciones CSS
+   simultáneas; ya no lo mueve main.js. La entrada frena hasta 0 (curva que
+   termina plana), así al acabar queda solo el recorrido. */
+body.has-location .ld-marquee-track {
+  animation: ld-marquee var(--ld-marquee-s, 40s) linear infinite;
+  animation-delay: 0s;
+}
+body.has-location .ld-marquee-enter {
+  animation: ld-marquee-enter 1.8s cubic-bezier(0.15, 0.75, 0.3, 1) both;
+}
+.ld-marquee-enter {
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  body.has-location .ld-marquee-track,
+  body.has-location .ld-marquee-enter { animation: none; }
+}
+
     </style>
   </head>
   <body>
@@ -5762,36 +5780,16 @@ document.documentElement.style.setProperty("--location-cursor", arrowCursorCss("
 document.documentElement.style.setProperty("--location-pointer", handCursorCss("none", "#5d9ef0"));
 
 // Letrero de la franja blanca: al aparecer entra desde la derecha rápido y
-// frena hasta la velocidad del recorrido, y sigue sin fin. Lo mueve un solo
-// bucle (requestAnimationFrame) sobre un solo elemento: así no hay salto
-// entre la entrada y el recorrido (antes eran dos animaciones y se trababa).
-// MARQUEE_LOOP_S: segundos por vuelta; MARQUEE_BOOST: cuántas veces más rápido
-// entra; MARQUEE_EASE_S: qué tan pronto frena (segundos).
-const MARQUEE_LOOP_S = 40;
-const MARQUEE_BOOST = 20;
-const MARQUEE_EASE_S = 1.2;
+// frena, y sigue sin fin. Son dos animaciones CSS al mismo tiempo (las mueve
+// la tarjeta de video, así no se traban aunque el mapa esté cargando): el
+// recorrido sin fin (.ld-marquee-track) corre desde el principio y la entrada
+// (.ld-marquee-enter, de --ld-enter-w a 0, frenando hasta velocidad 0) se le
+// suma; al terminar la entrada solo queda el recorrido, sin salto.
 function showLocationMarquee() {
   if (document.body.classList.contains("has-location")) return;
-  document.body.classList.add("has-location");
   const marquee = document.querySelector(".ld-marquee");
-  const track = document.querySelector(".ld-marquee-track");
-  if (!marquee || !track) return;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  let x = marquee.clientWidth; // empieza fuera, a la derecha
-  let elapsed = 0;
-  let last = performance.now();
-  const step = (now) => {
-    const dt = Math.min(0.25, (now - last) / 1000); // (tope: si la pestaña estuvo oculta)
-    last = now;
-    elapsed += dt;
-    const half = track.scrollWidth / 2;
-    const speed = (half / MARQUEE_LOOP_S) * (1 + (MARQUEE_BOOST - 1) * Math.exp(-elapsed / MARQUEE_EASE_S));
-    x -= speed * dt;
-    if (x <= -half) x += half;
-    track.style.transform = `translate3d(${x.toFixed(2)}px, 0, 0)`;
-    requestAnimationFrame(step);
-  };
-  requestAnimationFrame(step);
+  if (marquee) marquee.style.setProperty("--ld-enter-w", `${marquee.clientWidth}px`);
+  document.body.classList.add("has-location");
 }
 
 // El botón "Usar mi ubicación" de la simbología va debajo del texto del
@@ -6897,6 +6895,7 @@ function updateMarquee(collection = lastSensorCollection, nearest = null) {
   if (!feature) return;
   const { id, aqi } = feature.properties;
   if (placeNames[id] === undefined) lookUpPlace(id, feature.geometry.coordinates);
+  if (placeLookups.has(id) || placeNames[id] === undefined) return; // espera la colonia
   const index = AQI_LEVELS.indexOf(levelForAqi(aqi));
   const place = (placeNames[id] || "").split(", ")[0] || feature.properties.name;
   if (pendingSensorPick && !cardPinned) {
@@ -6979,8 +6978,10 @@ function updateLanding(collection = lastSensorCollection) {
 
 
 // Colonia y municipio del sensor (búsqueda inversa de Mapbox, una vez).
+const placeLookups = new Set(); // ids con búsqueda en curso
 async function lookUpPlace(id, [lng, lat]) {
   placeNames[id] = ""; // en curso: no repetir
+  placeLookups.add(id);
   try {
     const url = `https://api.mapbox.com/search/geocode/v6/reverse?longitude=${lng}&latitude=${lat}&types=neighborhood,locality,place&language=es&access_token=${mapboxgl.accessToken}`;
     const data = await (await fetch(url)).json();
@@ -6992,6 +6993,7 @@ async function lookUpPlace(id, [lng, lat]) {
   } catch {
     placeNames[id] = "";
   }
+  placeLookups.delete(id);
   updateSensorCard();
   updateLanding();
 }
