@@ -92,6 +92,13 @@ html, body,
   opacity: 1;
   transform: none;
 }
+/* (2026-11-18, Luisa) Viendo otra fecha/hora desde la gráfica (cursor encima, fijada o con ▶): la tarjeta dice
+   «ahora mismo» y no corresponde a los colores del mapa: se esconde y vuelve al regresar al último dato. */
+body.viendo-tiempo #sensor-card.visible {
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+}
 /* Fichas de información (FIGURAS/mapa 2dy3d_07.10.26.svg; main.js,
    syncSensorTabs): abajo a la derecha, alineadas con el final de la barra
    superior y con la base de la leyenda. Una píldora (.st-base, del alto de la
@@ -2654,8 +2661,9 @@ body.legend-docked #map-legend {
 
 /* Barra proporcional de la simbología (mapa_completo.html, FIGURAS/barra_proporcional.png): cada tramo
    mide según cuántos sensores hay hoy en ese nivel (main.js, updateLegendCounts).
-   --ml-barra-w = largo; --ml-barra-h = grueso; --ml-barra-gap = línea blanca entre tramos. */
-#map-legend { --ml-barra-w: calc(210 * var(--k)); --ml-barra-h: max(6px, calc(9 * var(--k))); --ml-barra-gap: 2px; }
+   --ml-barra-w = largo; --ml-barra-h = grueso; --ml-barra-gap = línea blanca entre tramos (0: van unidos con
+   el degradado corto). --degradado = px de degradado a cada lado de cada unión (main.js, tramosDegradados). */
+#map-legend { --ml-barra-w: calc(210 * var(--k)); --ml-barra-h: max(6px, calc(9 * var(--k))); --ml-barra-gap: 0px; --degradado: 3px; }
 #map-legend .ml-barra { display: flex; width: var(--ml-barra-w); gap: var(--ml-barra-gap); }
 #map-legend .ml-barra .ml-level { flex: 0 1 0; min-width: 0; gap: 0; padding: calc(8 * var(--k)) 0; }
 #map-legend .ml-barra .ml-vacio { display: none; }
@@ -2851,7 +2859,7 @@ html.modo-full #intro-sym .sym-dato { visibility: hidden !important; }
 @media (min-width: 64rem) {
   html.modo-full body #topbar {
     position: fixed;
-    top: 51px;
+    top: var(--barra-arriba, 16px);  /* distancia de la barra al borde de arriba (2026-11-18, Luisa: más arriba; antes 51px como inicio.html) */
     left: 50%;
     right: auto;
     width: max(min(1440px, 100vw) - 8px, 100vw - 128px);
@@ -2954,8 +2962,10 @@ html.modo-full body #topbar { opacity: 1; pointer-events: auto; }
 #sensor-tabs .st-pm-head > span:first-child { font-weight: 700; }
 #sensor-tabs .st-pm-val { opacity: 0.85; }
 #sensor-tabs .st-pm-val b { font-weight: 700; font-size: 1.15em; }
-#sensor-tabs .st-bar { --alto-barra: 6px; position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; height: var(--alto-barra); margin-top: 5px; }
-#sensor-tabs .st-bar span { border-radius: 3px; }
+/* --degradado: px de degradado a cada lado de la unión entre tramos (main.js, tramosDegradados) */
+#sensor-tabs .st-bar { --alto-barra: 6px; --degradado: 3px; position: relative; display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; height: var(--alto-barra); margin-top: 5px; }
+#sensor-tabs .st-bar span:first-of-type { border-radius: 3px 0 0 3px; }
+#sensor-tabs .st-bar span:last-of-type { border-radius: 0 3px 3px 0; }
 #sensor-tabs .st-bar i { position: absolute; top: -3px; bottom: -3px; width: 3px; border-radius: 2px; background: currentColor; transform: translateX(-50%); box-shadow: 0 0 0 1px rgba(34, 40, 85, 0.35); }
 /* Qué hacer: aviso para grupos sensibles, separado con una línea */
 #sensor-tabs .st-sensibles { margin-top: 10px !important; padding-top: 8px; border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent); opacity: 0.85; }
@@ -3032,8 +3042,10 @@ body.viendo-tiempo #aviso-simulacion { opacity: 0; }
 
 /* Play en la gráfica de «Últimas 12 h» (2026-11-17): junto al selector PM2.5 / PM10, en el color de las fichas.
    En Campo, abajo al centro solo queda una etiqueta con la hora que se ve (la barra con play y deslizador se quitó). */
-#sensor-tabs .st-fila { display: flex; align-items: center; gap: 8px; }
-#sensor-tabs .st-play { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); border-radius: 50%; background: none; color: inherit; cursor: pointer; }
+/* (2026-11-18) el play mide de diámetro lo mismo que el alto del selector PM2.5 / PM10: --alto-pm para los dos */
+#sensor-tabs .st-fila { --alto-pm: 24px; display: flex; align-items: center; gap: 8px; }
+#sensor-tabs .st-fila .st-switch { box-sizing: border-box; height: var(--alto-pm); margin: 0; }
+#sensor-tabs .st-play { display: grid; place-items: center; box-sizing: border-box; width: var(--alto-pm); height: var(--alto-pm); flex: none; padding: 0; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); border-radius: 50%; background: none; color: inherit; cursor: pointer; }
 #sensor-tabs .st-play:hover, #sensor-tabs .st-play.playing { background: color-mix(in srgb, currentColor 22%, transparent); }
 #sensor-tabs .st-play svg { width: 12px; height: 12px; }
 #sensor-tabs .st-i-pausa, #sensor-tabs .st-play.playing .st-i-play { display: none; }
@@ -3064,7 +3076,13 @@ body.vista-campo #campo-nota { opacity: 1; }
   transition: opacity 0.6s ease, border-color 0.8s ease, color 0.8s ease, background-color 0.3s ease;
 }
 body.legend-docked #campo-toggle { opacity: 1; pointer-events: auto; }
-#campo-toggle svg { width: 16px; height: 16px; opacity: 0.55; transition: opacity 0.3s ease; }
+#campo-toggle svg { width: 20px; height: 20px; opacity: 0.55; transition: opacity 0.3s ease; }
+/* Ícono de puntos (2026-11-18, Luisa: prueba 4 con su símbolo de puntos): apagado, puntos del color del aire;
+   prendido, puntos blancos sobre una mancha del color del campo (verde → amarillo) */
+#campo-toggle .cg-fondo { opacity: 0; transition: opacity 0.3s ease; }
+#campo-toggle .cg-puntos { transition: fill 0.3s ease; }
+#campo-toggle[aria-pressed="true"] .cg-fondo { opacity: 1; }
+#campo-toggle[aria-pressed="true"] .cg-puntos { fill: #ffffff; }
 #campo-toggle:hover svg, #campo-toggle[aria-pressed="true"] svg { opacity: 1; }
 #campo-toggle[aria-pressed="true"] { background: color-mix(in srgb, var(--intro-accent) 22%, #ffffff); }
 
@@ -3084,7 +3102,7 @@ body.vista-campo.tiempo-fijo #tiempo-aviso { bottom: calc(29 * var(--k) + 48px);
         var q = new URLSearchParams(location.search);
         if (q.has("embed")) document.documentElement.classList.add("modo-embed");
         if (q.has("full")) document.documentElement.classList.add("modo-full");
-        window.MIAIRE_COMPLETO = {"sensor": "b-006-obrera", "estilo": {"config": {"colorTrunks": "hsla(0, 0%, 100%, 0.25)", "colorEducation": "hsl(0, 0%, 93%)", "show3dObjects": false, "colorGreenspace": "hsla(0, 0%, 92%, 0.29)", "show3dTrees": false, "theme": "default", "show3dLandmarks": false, "colorCommercial": "hsl(0, 0%, 94%)", "colorMedical": "hsl(0, 0%, 94%)", "colorLand": "hsl(0, 0%, 98%)", "font": "DIN Pro", "colorRoads": "hsl(235, 15%, 87%)", "show3dBuildings": false, "showPointOfInterestLabels": false, "colorAdminBoundaries": "hsla(240, 0%, 36%, 0.73)", "colorWater": "hsl(213, 63%, 89%)", "lightPreset": "day", "showTransitLabels": false, "colorMotorways": "hsla(0, 0%, 100%, 0.25)", "showAdminBoundaries": true, "showPedestrianRoads": true, "colorBuildings": "hsl(0, 0%, 92%)", "showRoadLabels": false, "colorIndustrial": "hsl(0, 0%, 92%)"}, "hillshade": {"hillshade-shadow-color": ["interpolate", ["linear"], ["zoom"], 5, "hsla(233, 43%, 23%, 0.55)", 9, "hsla(233, 43%, 23%, 0.85)"], "hillshade-highlight-color": ["interpolate", ["linear"], ["zoom"], 5, "rgba(255, 255, 255, 0.08)", 9, "rgba(255, 255, 255, 0.25)"], "hillshade-accent-color": ["interpolate", ["linear"], ["zoom"], 5, "rgba(45, 45, 60, 0.15)", 9, "rgba(60, 60, 70, 0.15)"], "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 5, 1, 9, 0.5]}, "projection": {"name": "globe"}, "capas": [{"id": "road-motorway-trunk", "type": "line", "source": "composite", "source-layer": "road", "slot": "middle", "minzoom": 3, "filter": ["all", ["step", ["zoom"], ["match", ["get", "class"], ["motorway", "trunk"], true, false], 12, ["match", ["get", "class"], ["motorway", "trunk", "motorway_link", "trunk_link"], true, false]], ["==", ["geometry-type"], "LineString"]], "layout": {"line-join": ["step", ["zoom"], "miter", 14, "round"], "line-cap": ["step", ["zoom"], "butt", 14, "round"]}, "paint": {"line-color": "rgb(117, 121, 149)", "line-width": ["interpolate", ["exponential", 1.5], ["zoom"], 3, ["match", ["get", "class"], ["motorway", "trunk"], 0.8, 0], 12, ["match", ["get", "class"], ["motorway", "trunk"], 3.2, 0.8], 18, ["match", ["get", "class"], ["motorway", "trunk"], 30, 20], 22, ["match", ["get", "class"], ["motorway", "trunk"], 300, 200]], "line-emissive-strength": 0.6, "line-opacity": ["interpolate", ["linear"], ["zoom"], 10, 0.05, 12, 1]}}, {"id": "road", "type": "line", "source": "composite", "source-layer": "road", "slot": "middle", "minzoom": 6, "filter": ["all", ["step", ["zoom"], ["==", ["get", "class"], "primary"], 12, ["match", ["get", "class"], ["primary", "primary_link"], true, false]], ["==", ["geometry-type"], "LineString"], ["!=", ["get", "structure"], "tunnel"]], "layout": {"line-join": ["step", ["zoom"], "miter", 14, "round"], "line-cap": ["step", ["zoom"], "butt", 14, "round"]}, "paint": {"line-color": "rgb(117, 121, 149)", "line-width": ["interpolate", ["exponential", 1.5], ["zoom"], 3, ["match", ["get", "class"], ["primary"], 0.8, 0], 12, ["match", ["get", "class"], ["primary"], 3.2, 0.8], 18, ["match", ["get", "class"], ["primary"], 30, 20], 22, ["match", ["get", "class"], ["primary"], 300, 200]], "line-emissive-strength": 0.6, "line-opacity": ["interpolate", ["linear"], ["zoom"], 10, 0.05, 12, 1]}}], "fuenteCapas": "mapbox://mapbox.mapbox-streets-v8"}, "simulacion": true};
+        window.MIAIRE_COMPLETO = {"sensor": "b-006-obrera", "estilo": {"config": {"colorTrunks": "hsla(0, 0%, 100%, 0.25)", "colorEducation": "hsl(0, 0%, 93%)", "show3dObjects": false, "colorGreenspace": "hsla(0, 0%, 92%, 0.29)", "show3dTrees": false, "theme": "default", "show3dLandmarks": false, "colorCommercial": "hsl(0, 0%, 94%)", "colorMedical": "hsl(0, 0%, 94%)", "colorLand": "hsl(0, 0%, 98%)", "font": "DIN Pro", "colorRoads": "hsl(235, 15%, 87%)", "show3dBuildings": false, "showPointOfInterestLabels": false, "colorAdminBoundaries": "hsla(240, 0%, 36%, 0.73)", "colorWater": "hsl(213, 63%, 89%)", "lightPreset": "day", "showTransitLabels": false, "colorMotorways": "hsla(0, 0%, 100%, 0.25)", "showAdminBoundaries": true, "showPedestrianRoads": true, "colorBuildings": "hsl(0, 0%, 92%)", "showRoadLabels": false, "colorIndustrial": "hsl(0, 0%, 92%)"}, "hillshade": {"hillshade-shadow-color": ["interpolate", ["linear"], ["zoom"], 5, "hsla(233, 43%, 23%, 0.55)", 9, "hsla(233, 43%, 23%, 0.85)"], "hillshade-highlight-color": ["interpolate", ["linear"], ["zoom"], 5, "rgba(255, 255, 255, 0.08)", 9, "rgba(255, 255, 255, 0.25)"], "hillshade-accent-color": ["interpolate", ["linear"], ["zoom"], 5, "rgba(45, 45, 60, 0.15)", 9, "rgba(60, 60, 70, 0.15)"], "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 5, 1, 9, 0.5]}, "projection": {"name": "globe"}, "capas": [{"id": "road-motorway-trunk", "type": "line", "source": "composite", "source-layer": "road", "slot": "middle", "minzoom": 3, "filter": ["all", ["step", ["zoom"], ["match", ["get", "class"], ["motorway", "trunk"], true, false], 12, ["match", ["get", "class"], ["motorway", "trunk", "motorway_link", "trunk_link"], true, false]], ["==", ["geometry-type"], "LineString"]], "layout": {"line-join": ["step", ["zoom"], "miter", 14, "round"], "line-cap": ["step", ["zoom"], "butt", 14, "round"]}, "paint": {"line-color": "rgb(117, 121, 149)", "line-width": ["interpolate", ["exponential", 1.5], ["zoom"], 3, ["match", ["get", "class"], ["motorway", "trunk"], 0.8, 0], 12, ["match", ["get", "class"], ["motorway", "trunk"], 3.2, 0.8], 18, ["match", ["get", "class"], ["motorway", "trunk"], 30, 20], 22, ["match", ["get", "class"], ["motorway", "trunk"], 300, 200]], "line-emissive-strength": 0.6, "line-opacity": ["interpolate", ["linear"], ["zoom"], 10, 0.05, 12, 1]}}, {"id": "road", "type": "line", "source": "composite", "source-layer": "road", "slot": "middle", "minzoom": 6, "filter": ["all", ["step", ["zoom"], ["==", ["get", "class"], "primary"], 12, ["match", ["get", "class"], ["primary", "primary_link"], true, false]], ["==", ["geometry-type"], "LineString"], ["!=", ["get", "structure"], "tunnel"]], "layout": {"line-join": ["step", ["zoom"], "miter", 14, "round"], "line-cap": ["step", ["zoom"], "butt", 14, "round"]}, "paint": {"line-color": "rgb(117, 121, 149)", "line-width": ["interpolate", ["exponential", 1.5], ["zoom"], 3, ["match", ["get", "class"], ["primary"], 0.8, 0], 12, ["match", ["get", "class"], ["primary"], 3.2, 0.8], 18, ["match", ["get", "class"], ["primary"], 30, 20], 22, ["match", ["get", "class"], ["primary"], 300, 200]], "line-emissive-strength": 0.6, "line-opacity": ["interpolate", ["linear"], ["zoom"], 10, 0.05, 12, 1]}}], "fuenteCapas": "mapbox://mapbox.mapbox-streets-v8"}, "simulacion": false};
         if (!q.has("embed")) document.documentElement.classList.add("modo-full");
       })();
     </script>
@@ -3269,7 +3287,7 @@ body.vista-campo.tiempo-fijo #tiempo-aviso { bottom: calc(29 * var(--k) + 48px);
       <button type="button" class="vs-label vs-2d" data-vista="2d" role="radio" aria-checked="true">2D</button>
     </div>
     <!-- Campo interpolado: se prende o apaga encima de 3D o 2D -->
-    <button id="campo-toggle" type="button" aria-pressed="false" aria-label="Campo interpolado" title="Campo interpolado"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 13c2-6 10-6 12 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><path d="M5 13c1-3 5-3 6 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12.6" r="1.3" fill="currentColor"/></svg></button>
+    <button id="campo-toggle" type="button" aria-pressed="false" aria-label="Campo interpolado" title="Campo interpolado"><svg viewBox="0 0 20 20" aria-hidden="true"><defs><radialGradient id="cg-grad" cx="45%" cy="40%" r="65%"><stop offset="0" stop-color="#FAC131"/><stop offset="1" stop-color="#00CE93"/></radialGradient></defs><circle class="cg-fondo" cx="10" cy="10" r="10" fill="url(#cg-grad)"/><g class="cg-puntos" fill="currentColor"><circle cx="10.00" cy="10.00" r="2.1"/><circle cx="10.00" cy="5.40" r="1.35"/><circle cx="6.02" cy="7.70" r="1.35"/><circle cx="6.02" cy="12.30" r="1.35"/><circle cx="10.00" cy="14.60" r="1.35"/><circle cx="13.98" cy="12.30" r="1.35"/><circle cx="13.98" cy="7.70" r="1.35"/><circle cx="7.90" cy="2.18" r="0.95"/><circle cx="4.27" cy="4.27" r="0.95"/><circle cx="2.18" cy="7.90" r="0.95"/><circle cx="2.18" cy="12.10" r="0.95"/><circle cx="4.27" cy="15.73" r="0.95"/><circle cx="7.90" cy="17.82" r="0.95"/><circle cx="12.10" cy="17.82" r="0.95"/><circle cx="15.73" cy="15.73" r="0.95"/><circle cx="17.82" cy="12.10" r="0.95"/><circle cx="17.82" cy="7.90" r="0.95"/><circle cx="15.73" cy="4.27" r="0.95"/><circle cx="12.10" cy="2.18" r="0.95"/></g></svg></button>
 
     <script>
 // ===== colors.js =====
@@ -6755,6 +6773,11 @@ function initializeStyle() {
     type: "geojson",
     data: { type: "FeatureCollection", features: [] },
   });
+  // Lo que dibuja la capa de nubes 2D: los sensores sueltos + los grupos (ver «Nubes encimadas», actualizarNubes)
+  map.addSource("sensors-nubes", {
+    type: "geojson",
+    data: { type: "FeatureCollection", features: [] },
+  });
 
   // Halo de color bajo cada sensor, del color de su AQI. Solo aparece al
   // alejar el zoom: los halos vecinos se mezclan y la ciudad se lee como un
@@ -6813,11 +6836,12 @@ function initializeStyle() {
   map.addLayer({
     id: "sensor-cloud-2d",
     type: "symbol",
-    source: "sensors",
+    source: "sensors-nubes",
     layout: {
       "icon-image": cloudIconExpression(),
-      "icon-size": 0.3,
+      "icon-size": nubeTamano([]),
       "icon-allow-overlap": true,
+      "symbol-sort-key": ["get", "orden"], // la de peor nivel, encima (ver «Nubes encimadas»)
       visibility: "none", // el toggle lo activa al entrar a modo 2D
     },
     paint: {
@@ -6907,6 +6931,7 @@ function simularNiveles(collection) {
 
 function applySensorUpdate(collection) {
   map.getSource("sensors").setData(collection);
+  actualizarNubes(collection);
   updateColumnMeshes(collection);
   updateLocationColor(collection);
   updateLanding(collection);
@@ -6998,8 +7023,10 @@ function cloudOpacity(far) {
     return ["case", ["==", ["get", "id"], nearestSensorId], 1, INTRO_OTHER_CLOUDS_OPACITY];
   }
   // recorriendo la gráfica de un sensor elegido: los demás, tenues (ver «Línea de tiempo desde las gráficas»)
-  if (idsAtenuados) return ["case", ["in", ["get", "id"], ["literal", [...idsAtenuados]]], ATENUADO_OPACIDAD, 1];
-  return 1;
+  // las que quedan debajo de una de peor nivel, más tenues (ver «Nubes encimadas»)
+  const debajo = ["case", ["==", ["get", "debajo"], true], DEBAJO_OPACIDAD, 1];
+  if (idsAtenuados) return ["*", debajo, ["case", ["in", ["get", "id"], ["literal", [...idsAtenuados]]], ATENUADO_OPACIDAD, 1]];
+  return debajo;
 }
 // --- Tarjeta del sensor detectado ("Ahora mismo el aire está…") -------------
 // Diseño: FIGURAS/sensor aire highlight_sin_monito.svg (tarjeta de 253 x 175,
@@ -7794,7 +7821,20 @@ function nomBar(value, key) {
   const lo = i ? lim[i - 1] : 0, hi = lim[i];
   const pos = Math.min(1, (i + Math.min(1, (value - lo) / (hi - lo))) / AQI_LEVELS.length);
   return `<div class="st-pm"><div class="st-pm-head"><span>${POLLUTANT_NAME[key]}</span><span class="st-pm-val"><b>${value}</b> µg/m³ · ${LEVEL_FEMININE(AQI_LEVELS[i])}</span></div>
-    <div class="st-bar">${AQI_LEVELS.map((l, j) => `<span style="background:${l.color};opacity:${j === i ? 1 : NOM_BAR_OPACIDAD}"></span>`).join("")}<i style="left:${(pos * 100).toFixed(1)}%"></i></div></div>`;
+    <div class="st-bar">${tramosDegradados(AQI_LEVELS.map((l, j) => (j === i ? l.color : `color-mix(in srgb, ${l.color} ${NOM_BAR_OPACIDAD * 100}%, transparent)`))).map((fondo) => `<span style="background:${fondo}"></span>`).join("")}<i style="left:${(pos * 100).toFixed(1)}%"></i></div></div>`;
+}
+// Barras de colores por tramos (simbología y «Ahora mismo»): en lugar de un corte, cada tramo pasa al de junto con
+// un degradado MUY corto (--degradado en style.css, px a cada lado de la unión). Nunca ocupa más del 25 % de un
+// tramo por lado, así uno angosto (p. ej. 1 sensor amarillo) conserva su color. Devuelve un fondo por color.
+function tramosDegradados(colores) {
+  const D = "min(var(--degradado, 3px), 25%)";
+  const mezcla = (a, b) => `color-mix(in srgb, ${a} 50%, ${b})`;
+  return colores.map((c, k) => {
+    const antes = colores[k - 1], despues = colores[k + 1];
+    const ini = antes ? `${mezcla(antes, c)} 0%, ${c} ${D}` : `${c} 0%`;
+    const fin = despues ? `${c} calc(100% - ${D}), ${mezcla(c, despues)} 100%` : `${c} 100%`;
+    return `linear-gradient(90deg, ${ini}, ${fin})`;
+  });
 }
 const NOM_BAR_OPACIDAD = 0.35; // tramos de la barrita que no son el del valor
 // «Contaminantes»: qué es cada uno (texto general, no son datos del proyecto)
@@ -8387,6 +8427,7 @@ function refreshClouds() {
   }
   updateSensorCard();
   if (!map.getLayer("sensor-cloud-2d")) return;
+  actualizarNubes();
   map.setLayoutProperty("sensor-cloud-2d", "icon-image", cloudIconExpression());
   map.setPaintProperty("sensor-cloud-2d", "icon-opacity", cloudOpacity(map.getZoom() < CLOUD_2D_MIN_ZOOM));
   updateIntroClouds();
@@ -8717,7 +8758,9 @@ function drawCloudIcon(style, color) {
 // CAMPO_ORILLA_PX: grosor de la orilla en pantalla (px); la nube 2D se dibuja a icon-size 0.3 con pixelRatio 2.
 const CAMPO_ORILLA_PX = 1.5;
 function drawCloudIconOrilla(style, color) {
-  const nube = drawCloudCanvas(style, color, CLOUD_ICON_WIDTH_PX * 2);
+  return conOrilla(drawCloudCanvas(style, color, CLOUD_ICON_WIDTH_PX * 2));
+}
+function conOrilla(nube) {
   const b = Math.max(1, Math.round((CAMPO_ORILLA_PX * 2) / 0.3)); // grosor en px del ícono
   const silueta = document.createElement("canvas");
   silueta.width = nube.width; silueta.height = nube.height;
@@ -8802,7 +8845,8 @@ function cloudTextureFor(style) {
 // Nubecitas de la columna (pila): un anillo blanco muy delgado alrededor de cada una (CAMPO_ORILLA_PILA, en
 // unidades del SVG; el borde de la nube mide 25).
 const CAMPO_ORILLA_3D = 16;
-const CAMPO_ORILLA_PILA = 3;
+const CAMPO_ORILLA_PILA = 9;         // borde de las nubecitas de la columna: lo que asoma la silueta blanca a cada lado
+const CAMPO_ORILLA_PILA_ABAJO = 0.6; // qué tanto va la silueta debajo de la nubecita (fracción de su grosor)
 const cloudHalos = {};
 function cloudHaloFor(style) {
   if (cloudHalos[style]) return cloudHalos[style];
@@ -8821,20 +8865,23 @@ function cloudHaloFor(style) {
   return cloudHalos[style];
 }
 const stackOrillaTemplates = {};
+// (2026-11-18, Luisa: el anillo delgado se veía roto) Ahora es una SILUETA blanca rellena de la misma nube, un poco más
+// grande (CAMPO_ORILLA_PILA: lo que asoma a cada lado, en unidades del SVG; la nube mide ~340 de ancho), un poco
+// debajo de cada nubecita: lo que asoma alrededor es el borde. Las de contorno quedan blancas por dentro.
 function getStackOrillaTemplate(style = "filled") {
-  if (stackOrillaTemplates[style]) return stackOrillaTemplates[style];
+  if (stackOrillaTemplates.silueta) return stackOrillaTemplates.silueta;
   const box = CLOUD_TYPES_BOX;
   const cx = box.minX + box.width / 2, cy = box.minY + box.height / 2;
   const centered = sampleSvgPathPoints(CLOUD_TYPES_PATH_D, STACK_CLOUD_OUTLINE_POINTS).map(([x, y]) => [x - cx, -(y - cy)]);
-  const half = (CLOUD_TYPES_STROKE * CLOUD_3D_STROKE_SCALE) / 2, t = CAMPO_ORILLA_PILA;
-  const v = (pts) => pts.map(([x, y]) => new THREE.Vector2(x, y));
-  const anillo = (afuera, adentro) => { const sh = new THREE.Shape(v(offsetOutline(centered, afuera))); sh.holes.push(new THREE.Path(v(offsetOutline(centered, adentro)))); return sh; };
-  const shapes = [anillo(half + t, half)];
-  if (style === "outline") shapes.push(anillo(-half, -half - t)); // la de contorno también por dentro
-  const geometry = new THREE.ExtrudeGeometry(shapes, { depth: 1, bevelEnabled: false, curveSegments: 1 });
-  const scale = STACK_CLOUD_WIDTH_METERS / box.width;
-  geometry.scale(scale, scale, STACK_CLOUD_THICKNESS_METERS);
-  stackOrillaTemplates[style] = geometry;
+  const half = (CLOUD_TYPES_STROKE * CLOUD_3D_STROKE_SCALE) / 2;
+  const shape = new THREE.Shape(offsetOutline(centered, half).map(([x, y]) => new THREE.Vector2(x, y)));
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: 1, bevelEnabled: false, curveSegments: 1 });
+  // crece desde el centro: así no se cruza consigo misma en las entradas entre los lóbulos (el anillo sí)
+  const crece = 1 + (2 * CAMPO_ORILLA_PILA) / box.width;
+  const scale = (STACK_CLOUD_WIDTH_METERS / box.width) * crece;
+  geometry.scale(scale, scale * (1 + (2 * CAMPO_ORILLA_PILA) / box.height) / crece, STACK_CLOUD_THICKNESS_METERS);
+  geometry.translate(0, 0, -STACK_CLOUD_THICKNESS_METERS * CAMPO_ORILLA_PILA_ABAJO); // un poco debajo de la nubecita
+  stackOrillaTemplates.silueta = geometry;
   return geometry;
 }
 // -----------------------------------------------------------------------
@@ -8874,13 +8921,161 @@ const activeSensorId = () => pickedSensorId ?? nearestSensorId;
 const selectedSensorId = () => (cardPinned && !sensorDeselected ? activeSensorId() : null);
 let hovered2DId = null; // nube 2D bajo el cursor
 
+// ── Nubes encimadas (2026-11-18, Luisa: «agrupar con número» + «orden por gravedad») ──────────────────
+// Más lejos que GRUPO_HASTA_ZOOM, las nubes 2D que se tocan (a menos de GRUPO_RADIO_PX en pantalla, en cadena)
+// se juntan en UNA nube con el número de sensores (en blanco) y el color del PEOR nivel del grupo. Al picarla, el
+// mapa se acerca hasta GRUPO_HASTA_ZOOM y se separan. Desde ese zoom ya no se agrupan: la de peor nivel queda
+// siempre encima y las que quedan debajo de una peor se ven a DEBAJO_ESCALA y DEBAJO_OPACIDAD.
+// El sensor elegido y el de la persona nunca se agrupan. Solo 2D (las columnas 3D no cambian).
+const GRUPO_HASTA_ZOOM = 14;     // desde este zoom, cada sensor con su nube (y orden por gravedad)
+const GRUPOS_EN_3D = false;      // (2026-11-18, Luisa: en 3D sin grupos; el orden por gravedad sí) true = también en 3D
+const GRUPO_RADIO_PX = 30;       // distancia en pantalla a la que dos nubes se juntan (la nube mide ~38 px de ancho)
+const GRUPO_ESCALA = 1.35;       // tamaño de la nube de grupo respecto a la de un sensor
+const GRUPO_NUMERO_TAMANO = 0.2; // alto del número, en fracción del ancho de la nube de grupo
+const GRUPO_NUMERO_Y = 0.6;      // altura del número dentro de la nube (0 = arriba, 1 = abajo)
+const DEBAJO_ESCALA = 0.8;       // nube debajo de una de peor nivel: tamaño…
+const DEBAJO_OPACIDAD = 0.75;    // …y opacidad
+const DEBAJO_DISTANCIA_PX = 32;  // a menos de esto (en pantalla) se considera que una nube tapa a otra
+let nubesSueltoAntes; // el elegido con el que se calcularon los grupos
+let nubesColeccion = null;
+const nivelNube = (f) => (f.properties.aqi < 0 ? -1 : AQI_LEVELS.indexOf(levelForAqi(f.properties.aqi)));
+function actualizarNubes(collection = nubesColeccion) {
+  nubesColeccion = collection;
+  const fuente = map.getSource("sensors-nubes");
+  if (!fuente || !collection) return;
+  nubesSueltoAntes = selectedSensorId();
+  const agrupar = !introActive && map.getZoom() < GRUPO_HASTA_ZOOM && (GRUPOS_EN_3D || !is3DMode);
+  const sueltos = new Set([nubesSueltoAntes, nearestSensorId].filter(Boolean));
+  const items = collection.features.map((f) => {
+    const { x, y } = map.project(f.geometry.coordinates);
+    return { f, x, y, nivel: nivelNube(f) };
+  });
+  const grupos = [];
+  const seAgrupa = (it) => agrupar && !sueltos.has(it.f.properties.id);
+  const libres = items.filter((it) => !seAgrupa(it));
+  const pendientes = items.filter(seAgrupa);
+  while (pendientes.length) {
+    const g = [pendientes.shift()];
+    for (let k = 0; k < g.length; k++) {
+      for (let j = pendientes.length - 1; j >= 0; j--) {
+        if (Math.hypot(g[k].x - pendientes[j].x, g[k].y - pendientes[j].y) < GRUPO_RADIO_PX) g.push(...pendientes.splice(j, 1));
+      }
+    }
+    if (g.length === 1) libres.push(g[0]);
+    else grupos.push(g);
+  }
+  // orden por gravedad entre las que quedan sueltas
+  const features = libres.map((it) => {
+    const elegida = sueltos.has(it.f.properties.id);
+    const debajo = !elegida && libres.some((o) => o !== it && o.nivel > it.nivel && Math.hypot(o.x - it.x, o.y - it.y) < DEBAJO_DISTANCIA_PX);
+    return { ...it.f, properties: { ...it.f.properties, debajo, orden: elegida ? 100 : it.nivel } };
+  });
+  // 3D: lo mismo con columnas y nubes de Three.js (ver render de sensorColumnsLayer)
+  grupo3D.clear();
+  debajo3D = new Set(features.filter((f) => f.properties.debajo).map((f) => f.properties.id));
+  nivel3D = new Map(items.map((it) => [it.f.properties.id, it.nivel]));
+  grupos.forEach((g, k) => {
+    const peor = g.reduce((a, it) => (it.nivel > a.nivel ? it : a), g[0]);
+    const lng = g.reduce((a, it) => a + it.f.geometry.coordinates[0], 0) / g.length;
+    const lat = g.reduce((a, it) => a + it.f.geometry.coordinates[1], 0) / g.length;
+    const rep = peor.f.properties.id; // su columna y su nube representan al grupo, en el centro
+    for (const it of g) grupo3D.set(it.f.properties.id, { oculto: it.f.properties.id !== rep, lngLat: { lng, lat }, n: g.length });
+    features.push({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [lng, lat] },
+      properties: { id: `grupo-${k}`, n: g.length, ids: g.map((it) => it.f.properties.id).join(","), aqi: peor.f.properties.aqi, cloudStyle: "filled", debajo: false, orden: 50 },
+    });
+  });
+  fuente.setData({ type: "FeatureCollection", features });
+  map.triggerRepaint();
+}
+// 3D: id -> { oculto, lngLat, n } de los sensores agrupados (el de peor nivel no va oculto: es el grupo)
+const grupo3D = new Map();
+let debajo3D = new Set();
+let nivel3D = new Map();
+// Número del grupo en 3D: una tarjeta transparente con el número en blanco, delante de la nube del grupo
+const numeroTexturas3D = {};
+const numeros3D = {}; // id del sensor que representa al grupo -> malla del número
+function numeroMalla3D(id, n) {
+  let malla = numeros3D[id];
+  if (!malla) {
+    const geo = new THREE.PlaneGeometry(CLOUD_WIDTH_METERS * 0.6, CLOUD_WIDTH_METERS * 0.3);
+    geo.rotateX(Math.PI / 2); // de pie, de frente hacia -Y como la nube
+    geo.scale(-1, 1, 1); // si no, desde la cámara el número se lee en espejo
+    // mezcla premultiplicada como la nube: sin orilla oscura alrededor del número
+    malla = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
+    }));
+    malla.matrixAutoUpdate = false;
+    malla.renderOrder = 20; // después de las nubes: queda encima
+    columnsScene.add(malla);
+    numeros3D[id] = malla;
+  }
+  if (malla.userData.n !== n) {
+    if (!numeroTexturas3D[n]) {
+      const c = document.createElement("canvas");
+      c.width = 256; c.height = 128;
+      const ctx = c.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      // mismo alto relativo que en 2D: GRUPO_NUMERO_TAMANO del ancho de la nube (la tarjeta mide 0.6 x 0.3 de ese ancho)
+      ctx.font = `700 ${Math.round((128 * GRUPO_NUMERO_TAMANO) / 0.3)}px Manrope, system-ui, sans-serif`;
+      ctx.fillText(String(n), 128, 66);
+      const tex = new THREE.CanvasTexture(c);
+      tex.premultiplyAlpha = true;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      numeroTexturas3D[n] = tex;
+    }
+    malla.material.map = numeroTexturas3D[n];
+    malla.material.needsUpdate = true;
+    malla.userData.n = n;
+  }
+  return malla;
+}
+const grupoDe = (id) => { const g = grupo3D.get(id); return g && !g.oculto ? g : null; };
+// mientras se hace zoom, como mucho cada NUBES_CADA_MS; al terminar, siempre
+const NUBES_CADA_MS = 120;
+let nubesUltima = 0;
+map.on("zoom", () => {
+  if (performance.now() - nubesUltima < NUBES_CADA_MS) return;
+  nubesUltima = performance.now();
+  actualizarNubes();
+});
+map.on("zoomend", () => actualizarNubes());
+map.on("pitchend", () => actualizarNubes());
+// icon-size de las nubes 2D: las de `big` (elegida y hover) al doble; las de debajo, un poco más chicas
+function nubeTamano(big) {
+  const debajo = ["case", ["==", ["get", "debajo"], true], DEBAJO_ESCALA, 1];
+  return big.length ? ["*", 0.3, debajo, ["case", ["in", ["get", "id"], ["literal", big]], SELECTED_CLOUD_SCALE, 1]] : ["*", 0.3, debajo];
+}
+// Ícono de grupo: nube rellena del color del peor nivel, GRUPO_ESCALA veces más grande, con el número en blanco.
+// Se dibuja la primera vez que Mapbox lo pide ("grupo-<nivel>-<n>", con "-orilla" en Campo).
+function grupoIcono(nivel, n, orilla) {
+  const color = nivel === "nodata" ? NO_DATA_LEVEL.color : AQI_LEVELS[+nivel].color;
+  const nube = drawCloudCanvas("filled", color, Math.round(CLOUD_ICON_WIDTH_PX * 2 * GRUPO_ESCALA));
+  const ctx = nube.getContext("2d");
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `700 ${Math.round(nube.width * GRUPO_NUMERO_TAMANO)}px Manrope, system-ui, sans-serif`;
+  ctx.fillText(String(n), nube.width / 2, nube.height * GRUPO_NUMERO_Y);
+  return orilla ? conOrilla(nube) : ctx.getImageData(0, 0, nube.width, nube.height);
+}
+map.on("styleimagemissing", (e) => {
+  const m = /^grupo-(nodata|\d)-(\d+)(-orilla)?$/.exec(e.id);
+  if (m && !map.hasImage(e.id)) map.addImage(e.id, grupoIcono(m[1], m[2], !!m[3]), { pixelRatio: 2 });
+});
+document.fonts?.load("700 40px Manrope").catch(() => {});
+
 // Tamaño de las nubes 2D: la seleccionada y la del hover, al doble.
 function update2DCloudSize() {
   if (!map.getLayer("sensor-cloud-2d")) return;
   const big = [selectedSensorId(), hovered2DId].filter(Boolean);
-  map.setLayoutProperty("sensor-cloud-2d", "icon-size", big.length
-    ? ["case", ["in", ["get", "id"], ["literal", big]], 0.3 * SELECTED_CLOUD_SCALE, 0.3]
-    : 0.3);
+  if (selectedSensorId() !== nubesSueltoAntes) actualizarNubes(); // el elegido sale de su grupo
+  map.setLayoutProperty("sensor-cloud-2d", "icon-size", nubeTamano(big));
   // el círculo del sensor de la persona crece igual que su nube
   const grown = nearestSensorId && big.includes(nearestSensorId);
   if (map.getLayer("sensor-focus")) {
@@ -8967,13 +9162,14 @@ const sensorColumnsLayer = {
       // orilla blanca de las nubecitas de la pila (solo en Campo 3D)
       const orillaMesh = new THREE.InstancedMesh(
         getStackOrillaTemplate(cloudStyleFor(site.id)),
-        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, side: THREE.DoubleSide, depthWrite: false }),
         STACK_MAX_LAYERS
       );
       orillaMesh.count = 0;
       orillaMesh.matrixAutoUpdate = false;
       orillaMesh.frustumCulled = false;
       orillaMesh.visible = false;
+      orillaMesh.renderOrder = -1; // se dibuja antes que las nubecitas: queda detrás
       columnsScene.add(orillaMesh);
 
       columnMeshes[site.id] = { mesh: columnMesh, stack: stackMesh, orilla: orillaMesh, lngLat };
@@ -9057,7 +9253,15 @@ const sensorColumnsLayer = {
       zoom >= ZOOM_BOOST_REFERENCE ? 1 : Math.min(ZOOM_BOOST_MAX, 2 ** (ZOOM_BOOST_REFERENCE - zoom));
 
     const cameraPosition = map.getFreeCameraOptions().position;
-    for (const { mesh, stack, lngLat } of Object.values(columnMeshes)) {
+    for (const [id, { mesh, stack, lngLat: sitio }] of Object.entries(columnMeshes)) {
+      // agrupado (ver «Nubes encimadas»): escondido, o en el centro del grupo si es el que lo representa
+      const grupo = grupo3D.get(id);
+      if (grupo?.oculto) {
+        mesh.matrix.makeScale(0, 0, 0);
+        stack.matrix.copy(mesh.matrix);
+        continue;
+      }
+      const lngLat = grupo ? grupo.lngLat : sitio;
       // El terreno (DEM) carga después del primer frame y eleva el suelo
       // por encima de 0 — hay que anclar cada columna a la elevación real
       // del terreno en cada frame, o quedan enterradas bajo él.
@@ -9106,7 +9310,17 @@ const sensorColumnsLayer = {
       if (focusDisc3D) focusDisc3D.visible = showClouds && !highlightHeld && !!cloudMeshes[nearestSensorId];
       const cardId = cardPinned ? activeSensorId() : nearestSensorId;
       cardAnchor3D = null;
-      for (const [id, { mesh, lngLat }] of Object.entries(cloudMeshes)) {
+      for (const numero of Object.values(numeros3D)) numero.visible = false;
+      for (const [id, { mesh, lngLat: sitio }] of Object.entries(cloudMeshes)) {
+        const grupo = grupo3D.get(id);
+        if (grupo?.oculto) {
+          mesh.matrix.makeScale(0, 0, 0);
+          continue;
+        }
+        const lngLat = grupo ? grupo.lngLat : sitio;
+        // la de peor nivel se dibuja encima (los grupos, encima de todo); las de debajo, más chicas
+        mesh.renderOrder = grupo ? 10 : 2 + (nivel3D.get(id) ?? -1);
+        const extra = grupo ? GRUPO_ESCALA : debajo3D.has(id) ? DEBAJO_ESCALA : 1;
         const elevation = map.queryTerrainElevation(lngLat) ?? 0;
         const columnTop = (columnHeights[id] ?? 0) * columnsGrowth;
         const baseAltitude = elevation + (columnTop + CLOUD_GAP_METERS) * zoomBoost;
@@ -9122,7 +9336,7 @@ const sensorColumnsLayer = {
         // el zoom (todo ya agrandado) o al estar lejos de cámara, un 5x
         // fijo apenas se nota en pantalla.
         const selected = id === selectedSensorId();
-        const hoverScale = cloudHoverScale[id] ? CLOUD_HOVER_SCALE : selected ? SELECTED_CLOUD_SCALE : 1;
+        const hoverScale = (cloudHoverScale[id] && !grupo ? CLOUD_HOVER_SCALE : selected ? SELECTED_CLOUD_SCALE : 1) * extra;
         // La nube crece desde su propio centro (queda armada así desde
         // buildCloudGeometry), así que agrandarla también hunde su borde
         // inferior hacia la columna — subimos el centro la mitad de ese
@@ -9148,6 +9362,12 @@ const sensorColumnsLayer = {
           .makeTranslation(mercator.x, mercator.y, mercator.z)
           .scale(new THREE.Vector3(scale, scale, scale))
           .multiply(facing);
+        if (grupo) {
+          const numero = numeroMalla3D(id, grupo.n);
+          numero.visible = mesh.visible;
+          // un poco delante de la nube (-Y) y a la altura GRUPO_NUMERO_Y dentro de ella
+          numero.matrix.copy(mesh.matrix).multiply(new THREE.Matrix4().makeTranslation(0, -3, (0.5 - GRUPO_NUMERO_Y) * CLOUD_HEIGHT_METERS));
+        }
         if (id === nearestSensorId && focusDisc3D) {
           focusDisc3D.matrix.copy(mesh.matrix); // crece junto con la nube (hover / selección)
           const aqi = lastSensorCollection?.features.find((f) => f.properties.id === id)?.properties.aqi;
@@ -9181,8 +9401,11 @@ const sensorColumnsLayer = {
     }
     for (const [id, { mesh, halo }] of Object.entries(cloudMeshes)) {
       // mezcla premultiplicada (ONE, 1 - alfa): color y alfa bajan juntos
-      mesh.material.opacity = tenue(id);
-      if (mesh.userData.baseColor) mesh.material.color.copy(mesh.userData.baseColor).multiplyScalar(tenue(id));
+      const op = tenue(id) * (debajo3D.has(id) ? DEBAJO_OPACIDAD : 1); // debajo de una peor: más tenue
+      mesh.material.opacity = op;
+      if (mesh.userData.baseColor) mesh.material.color.copy(mesh.userData.baseColor).multiplyScalar(op);
+      if (numeros3D[id]) numeros3D[id].material.color.setScalar(tenue(id)); // premultiplicada: se atenúa con el color (y su alfa con opacity)
+      if (numeros3D[id]) numeros3D[id].material.opacity = tenue(id);
       // orilla blanca (Campo 3D): un poco atrás de la nube (el frente mira a -Y: +Y es atrás), con su opacidad
       if (halo) {
         halo.visible = campoMode && mesh.visible;
@@ -9224,7 +9447,9 @@ function detectHover3D() {
   if (mouseCanvasX != null && !showClouds && showColumns && farFade < 0.5) {
     // Sin nubes, el hover se detecta sobre la columna: el segmento de
     // pantalla entre su base y su punta, con un margen de su radio.
-    for (const [id, { lngLat }] of Object.entries(columnMeshes)) {
+    for (const [id, { lngLat: sitio }] of Object.entries(columnMeshes)) {
+      if (grupo3D.get(id)?.oculto) continue; // agrupado (ver «Nubes encimadas»)
+      const lngLat = grupo3D.get(id)?.lngLat ?? sitio;
       const elevation = map.queryTerrainElevation(lngLat) ?? 0;
       const bottomAlt = elevation + COLUMN_FLOAT_GAP_METERS;
       const topAlt = bottomAlt + (columnHeights[id] ?? 0) * zoomBoost;
@@ -9242,7 +9467,9 @@ function detectHover3D() {
     }
   }
   if (mouseCanvasX != null && showClouds && farFade < 0.5) {
-    for (const [id, { lngLat }] of Object.entries(cloudMeshes)) {
+    for (const [id, { lngLat: sitio }] of Object.entries(cloudMeshes)) {
+      if (grupo3D.get(id)?.oculto) continue; // agrupado (ver «Nubes encimadas»)
+      const lngLat = grupo3D.get(id)?.lngLat ?? sitio;
       const hitElevation = map.queryTerrainElevation(lngLat) ?? 0;
       const hitColumnTop = columnHeights[id] ?? 0;
       const hitAltitude = hitElevation + (hitColumnTop + CLOUD_GAP_METERS) * zoomBoost;
@@ -9348,7 +9575,10 @@ function wirePopups() {
   map.on("click", (e) => {
     if (!cardPinned) return;
     if (render3DColumns && hoveredSensorId) {
-      pickSensor(hoveredSensorId);
+      // grupo (ver «Nubes encimadas»): el mapa se acerca hasta que se separan
+      const grupo = grupoDe(hoveredSensorId);
+      if (grupo) map.easeTo({ center: [grupo.lngLat.lng, grupo.lngLat.lat], zoom: Math.max(map.getZoom() + 0.5, GRUPO_HASTA_ZOOM + 0.1), duration: 800 });
+      else pickSensor(hoveredSensorId);
       return;
     }
     const on2DCloud = map.getLayer("sensor-cloud-2d") && map.queryRenderedFeatures(e.point, { layers: ["sensor-cloud-2d"] }).length > 0;
@@ -9357,7 +9587,8 @@ function wirePopups() {
   // Nubes 2D: hover al doble y clic para seleccionar.
   map.on("mousemove", "sensor-cloud-2d", (e) => {
     if (introActive) return;
-    const id = e.features[0]?.properties.id ?? null;
+    const p = e.features[0]?.properties;
+    const id = p?.n ? null : (p?.id ?? null); // un grupo no crece con el hover
     map.getCanvas().style.cursor = POINTER_CURSOR;
     if (id !== hovered2DId) {
       hovered2DId = id;
@@ -9372,7 +9603,11 @@ function wirePopups() {
     }
   });
   map.on("click", "sensor-cloud-2d", (e) => {
-    if (!introActive) pickSensor(e.features[0]?.properties.id);
+    if (introActive) return;
+    const f = e.features[0];
+    // grupo (ver «Nubes encimadas»): el mapa se acerca hasta que se separan
+    if (f?.properties.n) map.easeTo({ center: f.geometry.coordinates, zoom: Math.max(map.getZoom() + 0.5, GRUPO_HASTA_ZOOM + 0.1), duration: 800 });
+    else pickSensor(f?.properties.id);
   });
   canvas.addEventListener("mouseleave", () => {
     mouseCanvasX = null;
@@ -9644,7 +9879,9 @@ const CLOUD_COLOR_FADE_MS = 900;
 function cloudIconExpression() {
   return introActive && !userLngLat && !cloudsColored
     ? ["concat", "cloud-", ["get", "cloudStyle"], "-intro"]
-    : ["concat", "cloud-", ["get", "cloudStyle"], "-", aqiLevelIndexExpression(), campoMode ? "-orilla" : ""]; // en Campo, con orilla blanca
+    : ["case", ["has", "n"],
+      ["concat", "grupo-", aqiLevelIndexExpression(), "-", ["to-string", ["get", "n"]], campoMode ? "-orilla" : ""], // grupo: ícono con su número (grupoIcono)
+      ["concat", "cloud-", ["get", "cloudStyle"], "-", aqiLevelIndexExpression(), campoMode ? "-orilla" : ""]]; // en Campo, con orilla blanca
 }
 // false hasta que termina el vuelo a Monterrey de la intro: el halo no se ve
 // durante ese zoom, solo cuando el usuario aleja después.
@@ -9771,6 +10008,7 @@ function leave3D() {
 function setViewMode(next3D, options = {}) {
   const was3D = is3DMode;
   is3DMode = next3D;
+  actualizarNubes(); // en 3D sin grupos (GRUPOS_EN_3D)
   syncViewSwitch();
   if (campoMode) campoSyncCapas(); // Campo sigue prendido: pasa de la capa 2D a la pegada al relieve (o al revés)
   refreshClouds(); // círculo del sensor de la persona: el 2D o el 3D
@@ -10409,6 +10647,12 @@ function updateLegendCounts(collection) {
     if (i >= 0) counts[i]++;
   }
   const conSensores = counts.flatMap((n, i) => (n ? [i] : []));
+  // barra de mapa_completo.html: degradado corto entre los tramos que sí se ven (tramosDegradados)
+  const fondos = tramosDegradados(conSensores.map((i) => AQI_LEVELS[i].color));
+  document.querySelectorAll("#map-legend .ml-tramo").forEach((el, i) => {
+    const k = conSensores.indexOf(i);
+    el.style.background = k >= 0 ? fondos[k] : AQI_LEVELS[i].color;
+  });
   document.querySelectorAll("#map-legend .ml-level:not(.ml-cloud)").forEach((el, i) => {
     const dot = el.querySelector(".ml-dot");
     if (dot) dot.textContent = counts[i];
