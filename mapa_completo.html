@@ -2734,6 +2734,9 @@ body.legend-docked #map-legend {
   cursor: var(--location-pointer, pointer);
 }
 #tb-sensor-list li[hidden] { display: none; }
+/* (2026-11-25) título de cada municipio en la lista; no se elige */
+#tb-sensor-list li.tb-grupo { padding: 12px 10px 4px; border-radius: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #8a8fab; cursor: default; }
+#tb-sensor-list li.tb-grupo:first-child { padding-top: 4px; }
 #tb-sensor-list li.active { background: #f0f3fa; }
 #tb-sensor-list li[aria-selected="true"] { font-weight: 700; }
 #tb-sensor-list li i { flex: none; width: 10px; height: 10px; border-radius: 50%; }
@@ -2923,7 +2926,31 @@ html.modo-full #intro-sym .sym-dato { visibility: hidden !important; }
   html.modo-full body #topbar .tb-nav a[aria-current="page"]::after { transform: scaleX(1); }
   html.modo-full body #topbar .tb-nav a[aria-current="page"] { color: #222855; font-weight: 400; }
   html.modo-full body #topbar .tb-place { order: 2; margin-left: auto; gap: 0; }
-  html.modo-full body #topbar #tb-locate { display: none !important; }
+  /* «Usar mi ubicación» (2026-11-25, Luisa): píldora azul fuerte con letra blanca, a la izquierda del selector.
+     Lleva al sensor más cercano a la persona (goToSensor(null)). Alto = el del selector (36px). */
+  html.modo-full body #topbar .tb-place { gap: 10px; }
+  html.modo-full body:not(.\_):not(.\_):not(.\_):not(.\_):not(.\_):not(.\_) #topbar #tb-locate {
+    display: flex !important;
+    order: -1;
+    width: auto;
+    min-width: 0;
+    height: 36px;
+    padding: 0 18px 0 14px;
+    gap: 9px;
+    border: 0 !important;
+    border-radius: 999px;
+    background: #222855 !important;   /* azul fuerte de la marca */
+    color: #ffffff !important;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+  }
+  html.modo-full body:not(.\_):not(.\_):not(.\_):not(.\_):not(.\_):not(.\_) #topbar #tb-locate:hover { filter: brightness(1.25); }
+  html.modo-full body:not(.\_):not(.\_):not(.\_):not(.\_):not(.\_):not(.\_) #topbar #tb-locate svg { width: 15px; height: 15px; }
   html.modo-full body #topbar .tb-select {
     width: 229px;
     min-width: 0;
@@ -2977,9 +3004,9 @@ html.modo-full body #topbar { opacity: 1; pointer-events: auto; }
 #sensor-tabs .st-chip { padding: 1px 9px; border: 1px solid currentColor; border-radius: 999px; font-weight: 700; }
 #sensor-tabs .st-pol-val { margin-left: auto; }
 #sensor-tabs .st-pol-val b { font-weight: 700; font-size: 1.15em; }
-/* Selector PM2.5 / PM10 de las gráficas (el mismo para «Últimas 12 h» y «Último mes») */
+/* Selector PM2.5 / PM10 de las gráficas (el mismo para «Últimas 24 h» y «Último mes») */
 #sensor-tabs .st-switch { display: inline-flex; gap: 2px; padding: 2px; margin: 0 0 2px; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); border-radius: 999px; }
-#sensor-tabs .st-switch button { padding: 2px 11px; border: 0; border-radius: 999px; background: none; color: inherit; font: inherit; font-weight: 700; opacity: 0.7; cursor: pointer; }
+#sensor-tabs .st-switch button { padding: 0.2em 1.05em; line-height: 1.2; border: 0; border-radius: 999px; background: none; color: inherit; font: inherit; font-weight: 700; opacity: 0.7; cursor: pointer; }
 #sensor-tabs .st-switch button[aria-pressed="true"] { background: color-mix(in srgb, currentColor 22%, transparent); opacity: 1; }
 #sensor-tabs .st-switch button:hover { opacity: 1; }
 
@@ -3027,7 +3054,7 @@ body.vista-campo #campo-panel { opacity: 1; pointer-events: auto; }
 #campo-tip[hidden] { display: none; }
 
 /* Línea de tiempo desde las gráficas (2026-11-17): aviso abajo al centro con el momento que muestra el mapa
-   mientras el cursor recorre «Últimas 12 h» o «Último mes» (en Campo lo dice el panel). En Campo las fichas
+   mientras el cursor recorre «Últimas 24 h» o «Último mes» (en Campo lo dice el panel). En Campo las fichas
    ya no se esconden: sus gráficas manejan el campo. */
 #tiempo-aviso { position: fixed; z-index: 4; left: 50%; bottom: calc(29 * var(--k)); transform: translateX(-50%); padding: 6px 14px; border-radius: 999px; background: #222855; color: #ffffff; font: 600 12px "Manrope", system-ui, sans-serif; pointer-events: none; opacity: 0; transition: opacity 0.2s ease; }
 body.viendo-tiempo:not(.vista-campo) #tiempo-aviso { opacity: 1; }
@@ -3040,14 +3067,15 @@ body.viendo-tiempo #aviso-simulacion { opacity: 0; }
 #sensor-tabs .st-cuenta span { display: inline-flex; align-items: center; gap: 4px; }
 #sensor-tabs .st-cuenta i { width: 8px; height: 8px; border-radius: 50%; }
 
-/* Play en la gráfica de «Últimas 12 h» (2026-11-17): junto al selector PM2.5 / PM10, en el color de las fichas.
+/* Play en la gráfica de «Últimas 24 h» (2026-11-17): junto al selector PM2.5 / PM10, en el color de las fichas.
    En Campo, abajo al centro solo queda una etiqueta con la hora que se ve (la barra con play y deslizador se quitó). */
 /* (2026-11-18) el play mide de diámetro lo mismo que el alto del selector PM2.5 / PM10: --alto-pm para los dos */
-#sensor-tabs .st-fila { --alto-pm: 24px; display: flex; align-items: center; gap: 8px; }
+/* (2026-11-25) en em: crece con la letra de la ficha (que crece con el ancho de pantalla). Antes 24px fijos y en monitores anchos el texto no cabía. ALTO_PM: 2.3em ≈ 24px en la laptop */
+#sensor-tabs .st-fila { --alto-pm: 2.3em; display: flex; align-items: center; gap: 0.75em; }
 #sensor-tabs .st-fila .st-switch { box-sizing: border-box; height: var(--alto-pm); margin: 0; }
 #sensor-tabs .st-play { display: grid; place-items: center; box-sizing: border-box; width: var(--alto-pm); height: var(--alto-pm); flex: none; padding: 0; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); border-radius: 50%; background: none; color: inherit; cursor: pointer; }
 #sensor-tabs .st-play:hover, #sensor-tabs .st-play.playing { background: color-mix(in srgb, currentColor 22%, transparent); }
-#sensor-tabs .st-play svg { width: 12px; height: 12px; }
+#sensor-tabs .st-play svg { width: 1.15em; height: 1.15em; }
 #sensor-tabs .st-i-pausa, #sensor-tabs .st-play.playing .st-i-play { display: none; }
 #sensor-tabs .st-play.playing .st-i-pausa { display: block; }
 #campo-nota { position: fixed; z-index: 3; left: 50%; bottom: calc(29 * var(--k)); transform: translateX(-50%); padding: 7px 16px; border-radius: 999px; background: rgba(255, 255, 255, 0.92); border: 1.5px solid #222855; color: #222855; font: 500 12px "Manrope", system-ui, sans-serif; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity 0.4s ease; }
@@ -3093,6 +3121,27 @@ body.legend-docked #campo-toggle { opacity: 1; pointer-events: auto; }
 #tiempo-aviso .ta-soltar:hover { background: rgba(255, 255, 255, 0.15); }
 body.tiempo-fijo #tiempo-aviso { opacity: 1; pointer-events: auto; }
 body.vista-campo.tiempo-fijo #tiempo-aviso { bottom: calc(29 * var(--k) + 48px); }
+
+/* Clima que agrava (2026-11-24, main.js «Clima que agrava» y tramosClima): tramo de horas con calor (índice NOAA),
+   frío o humedad muy alta sobre la curva de PM; la razón sale en el letrero del cursor. */
+#sensor-tabs .hc-clima-halo { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+#sensor-tabs .hc-clima-humedad { stroke-dasharray: 1.2 2.2; }   /* humedad = duda del sensor, no más riesgo: punteado */
+#sensor-tabs .hc-clima-guia { stroke-width: 0.8; stroke-dasharray: 1.5 1.5; }
+#sensor-tabs .hc-clima-punto { fill: #ffffff; stroke-width: 1.4; }
+#sensor-tabs .hc-clima-hora { font-size: 7.5px; font-weight: 700; }
+#sensor-tabs .hc-clima-icono { fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
+#sensor-tabs .hc-clima-texto { fill: #222855; font-size: 7.5px; font-weight: 700; }
+#sensor-tabs .hc-clima-excl { fill: #ffffff; font-size: 7.5px; font-weight: 800; }   /* el «!» de la advertencia */
+#sensor-tabs .hc-tip-clima { white-space: normal; width: 170px; margin-top: 4px; padding-top: 4px; border-top: 1px solid #ece9e3; font-size: 9px; line-height: 1.35; color: #222855; }
+#sensor-tabs .hc-tip-clima b { display: block; font-size: 10px; }
+#sensor-tabs .st-clima { margin-top: 8px !important; padding-top: 8px; border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent); }
+
+/* Botón de clima de las gráficas de PM (junto al ▶): prende / apaga los tramos de calor, frío y humedad.
+   Prendido = relleno como el ▶ cuando suena; apagado = solo el contorno. */
+#sensor-tabs .st-clima-btn { display: grid; place-items: center; box-sizing: border-box; width: var(--alto-pm); height: var(--alto-pm); flex: none; padding: 0; border: 1px solid color-mix(in srgb, currentColor 55%, transparent); border-radius: 50%; background: none; color: inherit; cursor: pointer; opacity: .55; }
+#sensor-tabs .st-clima-btn[aria-pressed="true"] { background: color-mix(in srgb, currentColor 22%, transparent); opacity: 1; }
+#sensor-tabs .st-clima-btn:hover { opacity: 1; }
+#sensor-tabs .st-clima-btn svg { width: 1.35em; height: 1.35em; }
 
     </style>
     <!-- mapa.html?embed (dentro de inicio.html) o ?full (mapa completo en otra pestaña): desde el primer
@@ -3469,76 +3518,76 @@ function gradientRgbAt(t) {
 // "Mapa Sensores PA" (mid=11lmUHNiiYd6ys2eFbXbvOkAxSRWXZY0) -- ubicaciones reales de sensores de
 // Monterrey (TEC de Monterrey, Clarity y la red ciudadana PA). El AQI que
 // se les asigna sigue siendo simulado (ver startMockFeed en sensors.js);
-// este archivo solo trae nombre + coordenadas reales.
+// este archivo solo trae nombre, municipio, colonia, código postal y coordenadas reales.
 // Vuelve a correr ese script si el mapa cambia.
 
 const REAL_SENSOR_SITES = [
-  { id: "prepatec-valle-alto-nivel-5", name: "PrepaTec Valle Alto Nivel 5", source: "Ubicacion sensores TEC", coords: [-100.249001, 25.570206] },
-  { id: "casa-naranjos", name: "Casa Naranjos", source: "Ubicacion sensores TEC", coords: [-100.289768, 25.654311] },
-  { id: "tecmi-cumbres-caseta", name: "Tecmi Cumbres Caseta", source: "Ubicacion sensores TEC", coords: [-100.4033458, 25.74016807] },
-  { id: "tec-cedes", name: "Tec-CEDES", source: "Ubicacion sensores TEC", coords: [-100.292361, 25.653609] },
-  { id: "tec-centro-de-congresos", name: "Tec-Centro de Congresos", source: "Ubicacion sensores TEC", coords: [-100.290283, 25.649106] },
-  { id: "tecmi-guadalupe-explanada", name: "Tecmi Guadalupe Explanada", source: "Ubicacion sensores TEC", coords: [-100.2069602, 25.6563317] },
-  { id: "tecmi-las-torres-cafeteria", name: "Tecmi Las Torres Cafetería", source: "Ubicacion sensores TEC", coords: [-100.3037976, 25.62824411] },
-  { id: "tecmi-las-torres-estacionamiento", name: "Tecmi Las Torres Estacionamiento", source: "Ubicacion sensores TEC", coords: [-100.3040261, 25.6280653] },
-  { id: "egade-sombrillas", name: "EGADE Sombrillas", source: "Ubicacion sensores TEC", coords: [-100.3256, 25.64418955] },
-  { id: "prepatec-egl-robotica", name: "PrepaTec EGL Robótica", source: "Ubicacion sensores TEC", coords: [-100.274604, 25.618005] },
-  { id: "prepatec-egl-biblioteca", name: "PrepaTec EGL Biblioteca", source: "Ubicacion sensores TEC", coords: [-100.275634, 25.618028] },
-  { id: "altavista", name: "Altavista", source: "Ubicacion sensores TEC", coords: [-100.2904427, 25.64404578] },
-  { id: "tecmi-san-nicolas-estacionamiento", name: "Tecmi San Nicolás Estacionamiento", source: "Ubicacion sensores TEC", coords: [-100.2827711, 25.74408164] },
-  { id: "estadio-banorte", name: "Estadio Banorte", source: "Ubicacion sensores TEC", coords: [-100.286569, 25.654276] },
-  { id: "prepatec-valle-alto-explanada", name: "PrepaTec Valle Alto Explanada", source: "Ubicacion sensores TEC", coords: [-100.249292, 25.569958] },
-  { id: "hospital-zambrano-hellion", name: "Hospital Zambrano Hellion", source: "Ubicacion sensores TEC", coords: [-100.3338582, 25.64733986] },
-  { id: "tec-centrales", name: "Tec-Centrales", source: "Ubicacion sensores TEC", coords: [-100.288862, 25.650924] },
-  { id: "tecmi-cumbres-jardineras", name: "Tecmi Cumbres Jardineras", source: "Ubicacion sensores TEC", coords: [-100.4029899, 25.74102798] },
-  { id: "la-campana", name: "La Campana", source: "Ubicacion sensores TEC", coords: [-100.3031704, 25.64073672] },
-  { id: "parque-central", name: "Parque Central", source: "Ubicacion sensores TEC", coords: [-100.287453, 25.65185] },
-  { id: "prepatec-egs-canchas", name: "PrepaTec EGS Canchas", source: "Ubicacion sensores TEC", coords: [-100.356943, 25.67041] },
-  { id: "prepatec-santa-catarina-estacionamiento", name: "PrepaTec Santa Catarina Estacionamiento", source: "Ubicacion sensores TEC", coords: [-100.430059, 25.661766] },
-  { id: "prepatec-cumbres-caseta", name: "PrepaTec Cumbres Caseta", source: "Ubicacion sensores TEC", coords: [-100.415129, 25.734618] },
-  { id: "tec-rectoria", name: "Tec-Rectoría", source: "Ubicacion sensores TEC", coords: [-100.291078, 25.651125] },
-  { id: "san-juan-bosco", name: "San Juan Bosco", source: "Ubicacion sensores TEC", coords: [-100.286831, 25.64951] },
-  { id: "rio-panuco", name: "Río Pánuco", source: "Ubicacion sensores TEC", coords: [-100.295984, 25.648229] },
-  { id: "egade-entrada", name: "EGADE Entrada", source: "Ubicacion sensores TEC", coords: [-100.3255021, 25.64418955] },
-  { id: "tecmi-guadalupe-caseta", name: "Tecmi Guadalupe Caseta", source: "Coordenadas Clarity", coords: [-100.208, 25.65444] },
-  { id: "prepatec-egs-caseta", name: "PrepaTec EGS Caseta", source: "Coordenadas Clarity", coords: [-100.3571761, 25.67098529] },
-  { id: "prepatec-santa-catarina-canchas", name: "PrepaTec Santa Catarina Canchas", source: "Coordenadas Clarity", coords: [-100.42995, 25.66349] },
-  { id: "tecmi-san-nicolas-explanada", name: "Tecmi San Nicolás Explanada", source: "Coordenadas Clarity", coords: [-100.2827, 25.74343] },
-  { id: "tec-jardin-de-las-carreras", name: "Tec-Jardin de las Carreras", source: "Coordenadas Clarity", coords: [-100.2888492, 25.65076125] },
-  { id: "prepatec-cumbres-canchas", name: "PrepaTec Cumbres Canchas", source: "Coordenadas Clarity", coords: [-100.4159881, 25.73434062] },
-  { id: "prepatec-valle-alto-canchas", name: "PrepaTec Valle Alto Canchas", source: "Coordenadas Clarity", coords: [-100.2483954, 25.57071184] },
-  { id: "aeropuerto", name: "Aeropuerto", source: "Coordenadas Clarity", coords: [-100.1234, 25.765] },
-  { id: "a-001-san-pedro-centro", name: "A-001 / San Pedro Centro", source: "PA CIUDADANOS", coords: [-100.3990001, 25.65865659] },
-  { id: "a-002-via-cordillera", name: "A-002 / Vía Cordillera", source: "PA CIUDADANOS", coords: [-100.4411226, 25.66103543] },
-  { id: "a-003-colonia-del-valle", name: "A-003 / Colonia del Valle", source: "PA CIUDADANOS", coords: [-100.3697232, 25.6617573] },
-  { id: "a-004-colinas-de-san-jeronimo", name: "A-004 / Colinas de San Jerónimo", source: "PA CIUDADANOS", coords: [-100.3629807, 25.68469632] },
-  { id: "a-005-av-clouthier", name: "A-005 / Av. Clouthier", source: "PA CIUDADANOS", coords: [-100.4404649, 25.68270244] },
-  { id: "b-001-la-rioja", name: "B-001 / La Rioja", source: "PA CIUDADANOS", coords: [-100.233227, 25.577771] },
-  { id: "b-002-pedregal-la-silla", name: "B-002 / Pedregal La Silla", source: "PA CIUDADANOS", coords: [-100.2550599, 25.59880985] },
-  { id: "b-003-camino-real", name: "B-003 / Camino Real", source: "PA CIUDADANOS", coords: [-100.2274816, 25.6540672] },
-  { id: "b-004-pio-x", name: "B-004 / Pío X", source: "PA CIUDADANOS", coords: [-100.3313014, 25.66193962] },
-  { id: "b-005-rio-la-silla", name: "B-005 / Río La Silla", source: "PA CIUDADANOS", coords: [-100.2631237, 25.6581182] },
-  { id: "b-006-obrera", name: "B-006 / Obrera", source: "PA CIUDADANOS", coords: [-100.2927159, 25.67648236] },
-  { id: "c-001-cadereyta-centro", name: "C-001 / Cadereyta Centro", source: "PA CIUDADANOS", coords: [-100.00826, 25.588664] },
-  { id: "c-002-nueva-cadereyta", name: "C-002 / Nueva Cadereyta", source: "PA CIUDADANOS", coords: [-99.988771, 25.602795] },
-  { id: "c-003-los-faisanes", name: "C-003 / Los Faisanes", source: "PA CIUDADANOS", coords: [-100.174432, 25.685147] },
-  { id: "c-004-jardines-de-la-silla", name: "C-004 / Jardines de la Silla", source: "PA CIUDADANOS", coords: [-100.1739787, 25.63927699] },
-  { id: "c-005-monte-verde", name: "C-005 / Monte Verde", source: "PA CIUDADANOS", coords: [-100.1492894, 25.64612742] },
-  { id: "c-006-arboledas-de-san-roque", name: "C-006 / Arboledas de San Roque", source: "PA CIUDADANOS", coords: [-100.155095, 25.6085184] },
-  { id: "c-008-hacienda-el-campanario", name: "C-008 / Hacienda El Campanario", source: "PA CIUDADANOS", coords: [-100.1372346, 25.73150282] },
-  { id: "d-001-nuevo-mezquital", name: "D-001 / Nuevo Mezquital", source: "PA CIUDADANOS", coords: [-100.2425735, 25.7482521] },
-  { id: "d-002-apodaca-centro", name: "D-002 / Apodaca Centro", source: "PA CIUDADANOS", coords: [-100.2049763, 25.78740982] },
-  { id: "d-003-privadas-del-canada", name: "D-003 / Privadas del Canadá", source: "PA CIUDADANOS", coords: [-100.2699021, 25.79693494] },
-  { id: "d-004-hacienda-las-palmas", name: "D-004 / Hacienda Las Palmas", source: "PA CIUDADANOS", coords: [-100.2662209, 25.77412747] },
-  { id: "e-001-av-raul-salinas", name: "E-001 / Av. Raúl Salinas", source: "PA CIUDADANOS", coords: [-100.342101, 25.7934017] },
-  { id: "e-002-joyas-de-anahuac", name: "E-002 / Joyas de Anáhuac", source: "PA CIUDADANOS", coords: [-100.3111848, 25.77250774] },
-  { id: "f-001-dominio-cumbres", name: "F-001 / Dominio Cumbres", source: "PA CIUDADANOS", coords: [-100.469869, 25.761632] },
-  { id: "f-002-puerta-de-hierro", name: "F-002 / Puerta de Hierro", source: "PA CIUDADANOS", coords: [-100.412594, 25.758043] },
-  { id: "f-003-mitras-poniente", name: "F-003 / Mitras Poniente", source: "PA CIUDADANOS", coords: [-100.4299229, 25.76708737] },
-  { id: "f-004-anahuac", name: "F-004 / Anáhuac", source: "PA CIUDADANOS", coords: [-100.3167904, 25.73375296] },
-  { id: "f-005-topo-chico", name: "F-005 / Topo Chico", source: "PA CIUDADANOS", coords: [-100.3682488, 25.77094641] },
-  { id: "f-006-los-cedros", name: "F-006 / Los Cedros", source: "PA CIUDADANOS", coords: [-100.3707719, 25.7182894] },
-  { id: "f-007-heroes-lincoln", name: "F-007 / Héroes Lincoln", source: "PA CIUDADANOS", coords: [-100.5553655, 25.81697895] },
+  { id: "prepatec-valle-alto-nivel-5", name: "PrepaTec Valle Alto Nivel 5", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64983", coords: [-100.249001, 25.570206] },
+  { id: "casa-naranjos", name: "Casa Naranjos", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "Cerro de la Silla", cp: "64810", coords: [-100.289768, 25.654311] },
+  { id: "tecmi-cumbres-caseta", name: "Tecmi Cumbres Caseta", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64349", coords: [-100.4033458, 25.74016807] },
+  { id: "tec-cedes", name: "Tec-CEDES", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64700", coords: [-100.292361, 25.653609] },
+  { id: "tec-centro-de-congresos", name: "Tec-Centro de Congresos", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64700", coords: [-100.290283, 25.649106] },
+  { id: "tecmi-guadalupe-explanada", name: "Tecmi Guadalupe Explanada", source: "Ubicacion sensores TEC", municipio: "Guadalupe", colonia: "", cp: "67180", coords: [-100.2069602, 25.6563317] },
+  { id: "tecmi-las-torres-cafeteria", name: "Tecmi Las Torres Cafetería", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64920", coords: [-100.3037976, 25.62824411] },
+  { id: "tecmi-las-torres-estacionamiento", name: "Tecmi Las Torres Estacionamiento", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64920", coords: [-100.3040261, 25.6280653] },
+  { id: "egade-sombrillas", name: "EGADE Sombrillas", source: "Ubicacion sensores TEC", municipio: "San Pedro Garza García", colonia: "", cp: "66278", coords: [-100.3256, 25.64418955] },
+  { id: "prepatec-egl-robotica", name: "PrepaTec EGL Robótica", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64790", coords: [-100.274604, 25.618005] },
+  { id: "prepatec-egl-biblioteca", name: "PrepaTec EGL Biblioteca", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64790", coords: [-100.275634, 25.618028] },
+  { id: "altavista", name: "Altavista", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "Altavista", cp: "64840", coords: [-100.2904427, 25.64404578] },
+  { id: "tecmi-san-nicolas-estacionamiento", name: "Tecmi San Nicolás Estacionamiento", source: "Ubicacion sensores TEC", municipio: "San Nicolás de los Garza", colonia: "Las Puentes Tercer Sector", cp: "66460", coords: [-100.2827711, 25.74408164] },
+  { id: "estadio-banorte", name: "Estadio Banorte", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64700", coords: [-100.286569, 25.654276] },
+  { id: "prepatec-valle-alto-explanada", name: "PrepaTec Valle Alto Explanada", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64983", coords: [-100.249292, 25.569958] },
+  { id: "hospital-zambrano-hellion", name: "Hospital Zambrano Hellion", source: "Ubicacion sensores TEC", municipio: "San Pedro Garza García", colonia: "", cp: "66260", coords: [-100.3338582, 25.64733986] },
+  { id: "tec-centrales", name: "Tec-Centrales", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64700", coords: [-100.288862, 25.650924] },
+  { id: "tecmi-cumbres-jardineras", name: "Tecmi Cumbres Jardineras", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64349", coords: [-100.4029899, 25.74102798] },
+  { id: "la-campana", name: "La Campana", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "Cerro de la Campana", cp: "64760", coords: [-100.3031704, 25.64073672] },
+  { id: "parque-central", name: "Parque Central", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64700", coords: [-100.287453, 25.65185] },
+  { id: "prepatec-egs-canchas", name: "PrepaTec EGS Canchas", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64710", coords: [-100.356943, 25.67041] },
+  { id: "prepatec-santa-catarina-estacionamiento", name: "PrepaTec Santa Catarina Estacionamiento", source: "Ubicacion sensores TEC", municipio: "Santa Catarina", colonia: "", cp: "66187", coords: [-100.430059, 25.661766] },
+  { id: "prepatec-cumbres-caseta", name: "PrepaTec Cumbres Caseta", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "Cumbres Madeira Frances Sector Alpes", cp: "64349", coords: [-100.415129, 25.734618] },
+  { id: "tec-rectoria", name: "Tec-Rectoría", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "", cp: "64700", coords: [-100.291078, 25.651125] },
+  { id: "san-juan-bosco", name: "San Juan Bosco", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "Altavista", cp: "64840", coords: [-100.286831, 25.64951] },
+  { id: "rio-panuco", name: "Río Pánuco", source: "Ubicacion sensores TEC", municipio: "Monterrey", colonia: "Tecnológico", cp: "64700", coords: [-100.295984, 25.648229] },
+  { id: "egade-entrada", name: "EGADE Entrada", source: "Ubicacion sensores TEC", municipio: "San Pedro Garza García", colonia: "", cp: "66278", coords: [-100.3255021, 25.64418955] },
+  { id: "tecmi-guadalupe-caseta", name: "Tecmi Guadalupe Caseta", source: "Coordenadas Clarity", municipio: "Guadalupe", colonia: "La Playa Segundo Sector", cp: "67180", coords: [-100.208, 25.65444] },
+  { id: "prepatec-egs-caseta", name: "PrepaTec EGS Caseta", source: "Coordenadas Clarity", municipio: "Monterrey", colonia: "", cp: "64710", coords: [-100.3571761, 25.67098529] },
+  { id: "prepatec-santa-catarina-canchas", name: "PrepaTec Santa Catarina Canchas", source: "Coordenadas Clarity", municipio: "Santa Catarina", colonia: "", cp: "66187", coords: [-100.42995, 25.66349] },
+  { id: "tecmi-san-nicolas-explanada", name: "Tecmi San Nicolás Explanada", source: "Coordenadas Clarity", municipio: "San Nicolás de los Garza", colonia: "Las Puentes Tercer Sector", cp: "66460", coords: [-100.2827, 25.74343] },
+  { id: "tec-jardin-de-las-carreras", name: "Tec-Jardin de las Carreras", source: "Coordenadas Clarity", municipio: "Monterrey", colonia: "", cp: "64700", coords: [-100.2888492, 25.65076125] },
+  { id: "prepatec-cumbres-canchas", name: "PrepaTec Cumbres Canchas", source: "Coordenadas Clarity", municipio: "Monterrey", colonia: "Cumbres Madeira Frances Sector Alpes", cp: "64349", coords: [-100.4159881, 25.73434062] },
+  { id: "prepatec-valle-alto-canchas", name: "PrepaTec Valle Alto Canchas", source: "Coordenadas Clarity", municipio: "Monterrey", colonia: "", cp: "64983", coords: [-100.2483954, 25.57071184] },
+  { id: "aeropuerto", name: "Aeropuerto", source: "Coordenadas Clarity", municipio: "Apodaca", colonia: "", cp: "66628", coords: [-100.1234, 25.765] },
+  { id: "a-001-san-pedro-centro", name: "A-001 / San Pedro Centro", source: "PA CIUDADANOS", municipio: "San Pedro Garza García", colonia: "San Pedro Centro", cp: "66200", coords: [-100.3990001, 25.65865659] },
+  { id: "a-002-via-cordillera", name: "A-002 / Vía Cordillera", source: "PA CIUDADANOS", municipio: "Santa Catarina", colonia: "Vía Cordillera", cp: "66197", coords: [-100.4411226, 25.66103543] },
+  { id: "a-003-colonia-del-valle", name: "A-003 / Colonia del Valle", source: "PA CIUDADANOS", municipio: "San Pedro Garza García", colonia: "Colonia del Valle", cp: "66220", coords: [-100.3697232, 25.6617573] },
+  { id: "a-004-colinas-de-san-jeronimo", name: "A-004 / Colinas de San Jerónimo", source: "PA CIUDADANOS", municipio: "Monterrey", colonia: "Colinas de San Jerónimo", cp: "64630", coords: [-100.3629807, 25.68469632] },
+  { id: "a-005-av-clouthier", name: "A-005 / Av. Clouthier", source: "PA CIUDADANOS", municipio: "Santa Catarina", colonia: "Av. Clouthier", cp: "66120", coords: [-100.4404649, 25.68270244] },
+  { id: "b-001-la-rioja", name: "B-001 / La Rioja", source: "PA CIUDADANOS", municipio: "Monterrey", colonia: "La Rioja", cp: "64988", coords: [-100.233227, 25.577771] },
+  { id: "b-002-pedregal-la-silla", name: "B-002 / Pedregal La Silla", source: "PA CIUDADANOS", municipio: "Monterrey", colonia: "Pedregal La Silla", cp: "64898", coords: [-100.2550599, 25.59880985] },
+  { id: "b-003-camino-real", name: "B-003 / Camino Real", source: "PA CIUDADANOS", municipio: "Guadalupe", colonia: "Camino Real", cp: "67177", coords: [-100.2274816, 25.6540672] },
+  { id: "b-004-pio-x", name: "B-004 / Pío X", source: "PA CIUDADANOS", municipio: "Monterrey", colonia: "Pío X", cp: "64710", coords: [-100.3313014, 25.66193962] },
+  { id: "b-005-rio-la-silla", name: "B-005 / Río La Silla", source: "PA CIUDADANOS", municipio: "Guadalupe", colonia: "Río La Silla", cp: "67174", coords: [-100.2631237, 25.6581182] },
+  { id: "b-006-obrera", name: "B-006 / Obrera", source: "PA CIUDADANOS", municipio: "Monterrey", colonia: "Obrera", cp: "64010", coords: [-100.2927159, 25.67648236] },
+  { id: "c-001-cadereyta-centro", name: "C-001 / Cadereyta Centro", source: "PA CIUDADANOS", municipio: "Cadereyta Jiménez", colonia: "Cadereyta Centro", cp: "67480", coords: [-100.00826, 25.588664] },
+  { id: "c-002-nueva-cadereyta", name: "C-002 / Nueva Cadereyta", source: "PA CIUDADANOS", municipio: "Cadereyta Jiménez", colonia: "Nueva Cadereyta", cp: "67483", coords: [-99.988771, 25.602795] },
+  { id: "c-003-los-faisanes", name: "C-003 / Los Faisanes", source: "PA CIUDADANOS", municipio: "Guadalupe", colonia: "Los Faisanes", cp: "67169", coords: [-100.174432, 25.685147] },
+  { id: "c-004-jardines-de-la-silla", name: "C-004 / Jardines de la Silla", source: "PA CIUDADANOS", municipio: "Juárez", colonia: "Jardines de la Silla", cp: "67288", coords: [-100.1739787, 25.63927699] },
+  { id: "c-005-monte-verde", name: "C-005 / Monte Verde", source: "PA CIUDADANOS", municipio: "Juárez", colonia: "Monte Verde", cp: "67257", coords: [-100.1492894, 25.64612742] },
+  { id: "c-006-arboledas-de-san-roque", name: "C-006 / Arboledas de San Roque", source: "PA CIUDADANOS", municipio: "Juárez", colonia: "Arboledas de San Roque", cp: "67280", coords: [-100.155095, 25.6085184] },
+  { id: "c-008-hacienda-el-campanario", name: "C-008 / Hacienda El Campanario", source: "PA CIUDADANOS", municipio: "Apodaca", colonia: "Hacienda El Campanario", cp: "66643", coords: [-100.1372346, 25.73150282] },
+  { id: "d-001-nuevo-mezquital", name: "D-001 / Nuevo Mezquital", source: "PA CIUDADANOS", municipio: "San Nicolás de los Garza", colonia: "Nuevo Mezquital", cp: "66445", coords: [-100.2425735, 25.7482521] },
+  { id: "d-002-apodaca-centro", name: "D-002 / Apodaca Centro", source: "PA CIUDADANOS", municipio: "Apodaca", colonia: "Apodaca Centro", cp: "66604", coords: [-100.2049763, 25.78740982] },
+  { id: "d-003-privadas-del-canada", name: "D-003 / Privadas del Canadá", source: "PA CIUDADANOS", municipio: "General Escobedo", colonia: "Privadas del Canadá", cp: "66059", coords: [-100.2699021, 25.79693494] },
+  { id: "d-004-hacienda-las-palmas", name: "D-004 / Hacienda Las Palmas", source: "PA CIUDADANOS", municipio: "Apodaca", colonia: "Hacienda Las Palmas", cp: "66635", coords: [-100.2662209, 25.77412747] },
+  { id: "e-001-av-raul-salinas", name: "E-001 / Av. Raúl Salinas", source: "PA CIUDADANOS", municipio: "General Escobedo", colonia: "Av. Raúl Salinas", cp: "66070", coords: [-100.342101, 25.7934017] },
+  { id: "e-002-joyas-de-anahuac", name: "E-002 / Joyas de Anáhuac", source: "PA CIUDADANOS", municipio: "General Escobedo", colonia: "Joyas de Anáhuac", cp: "66055", coords: [-100.3111848, 25.77250774] },
+  { id: "f-001-dominio-cumbres", name: "F-001 / Dominio Cumbres", source: "PA CIUDADANOS", municipio: "García", colonia: "Dominio Cumbres", cp: "66036", coords: [-100.469869, 25.761632] },
+  { id: "f-002-puerta-de-hierro", name: "F-002 / Puerta de Hierro", source: "PA CIUDADANOS", municipio: "Monterrey", colonia: "Puerta de Hierro", cp: "64349", coords: [-100.412594, 25.758043] },
+  { id: "f-003-mitras-poniente", name: "F-003 / Mitras Poniente", source: "PA CIUDADANOS", municipio: "García", colonia: "Mitras Poniente", cp: "66024", coords: [-100.4299229, 25.76708737] },
+  { id: "f-004-anahuac", name: "F-004 / Anáhuac", source: "PA CIUDADANOS", municipio: "San Nicolás de los Garza", colonia: "Anáhuac", cp: "66450", coords: [-100.3167904, 25.73375296] },
+  { id: "f-005-topo-chico", name: "F-005 / Topo Chico", source: "PA CIUDADANOS", municipio: "Monterrey", colonia: "Topo Chico", cp: "64206", coords: [-100.3682488, 25.77094641] },
+  { id: "f-006-los-cedros", name: "F-006 / Los Cedros", source: "PA CIUDADANOS", municipio: "Monterrey", colonia: "Los Cedros", cp: "64370", coords: [-100.3707719, 25.7182894] },
+  { id: "f-007-heroes-lincoln", name: "F-007 / Héroes Lincoln", source: "PA CIUDADANOS", municipio: "García", colonia: "Héroes Lincoln", cp: "66013", coords: [-100.5553655, 25.81697895] },
 ];
 
 // ===== sensors.js =====
@@ -3550,7 +3599,9 @@ const REAL_SENSOR_SITES = [
 // contrato (`onUpdate(features)`) es todo lo que main.js depende de esto,
 // así que cambiar la fuente no toca código del mapa.
 
-const SENSOR_SITES = REAL_SENSOR_SITES;
+// Sin la clave del sensor («A-001 / San Pedro Centro» → «San Pedro Centro»): en la página solo va el nombre
+// (2026-11-24). Los scripts de datos siguen empatando con el nombre completo de sensorSites.js.
+const SENSOR_SITES = REAL_SENSOR_SITES.map((s) => ({ ...s, name: s.name.replace(/^[A-Z]{1,3}-\d+\s*\/\s*/, "") }));
 
 // Estilo de nube de cada sensor (dibujos de FIGURAS/miaire_nubes_tipos.svg):
 // "outline" (solo contorno) = sensores que también miden gases (Luisa,
@@ -6269,10 +6320,10 @@ const SENSOR_DATA = {"aeropuerto":[["2026-09-20T12",5.8,33.5,34.0,38.0,0],["2026
 // ===== sensorHourly.js =====
 
 // GENERADO por scripts/build_sensor_hourly.py a partir de datos/datos_sensores_por_hora.xlsx — no editar a mano.
-// Promedios REALES por hora de las últimas 12 horas del archivo, por sensor: [hora de inicio, pm25, pm10, categoría].
+// Promedios REALES por hora de las últimas 24 horas del archivo, por sensor: [hora de inicio, pm25, pm10, categoría, temperatura °C, humedad %].
 // categoría = índice en AQI_LEVELS (0 Buena … 4 Extremadamente mala), -1 sin dato.
-const SENSOR_HOURLY_META = {"fuente": "datos/datos_sensores_por_hora.xlsx", "horas": 12, "desde": "2026-10-20T05", "hasta": "2026-10-20T16", "campos": ["hora", "pm25", "pm10", "categoria"]};
-const SENSOR_HOURLY = {"aeropuerto":[["2026-10-20T05",5.2,20.8,0],["2026-10-20T06",4.8,19.9,0],["2026-10-20T07",4.6,19.1,0],["2026-10-20T08",6.0,21.1,0],["2026-10-20T09",6.8,23.3,0],["2026-10-20T10",5.5,21.5,0],["2026-10-20T11",3.7,20.0,0],["2026-10-20T12",3.6,20.9,0],["2026-10-20T13",4.0,22.1,0],["2026-10-20T14",3.9,22.5,0],["2026-10-20T15",3.9,22.9,0],["2026-10-20T16",3.8,22.8,0]],"altavista":[["2026-10-20T05",8.0,23.7,0],["2026-10-20T06",7.9,23.1,0],["2026-10-20T07",8.1,23.4,0],["2026-10-20T08",19.3,41.1,0],["2026-10-20T09",27.8,53.5,0],["2026-10-20T10",27.7,52.5,1],["2026-10-20T11",14.3,34.7,0],["2026-10-20T12",9.9,28.5,0],["2026-10-20T13",10.2,27.1,0],["2026-10-20T14",10.2,27.3,0],["2026-10-20T15",8.7,24.0,0],["2026-10-20T16",8.8,23.9,0]],"f-004-anahuac":[["2026-10-20T05",9.5,20.6,0],["2026-10-20T06",9.8,22.0,0],["2026-10-20T07",10.8,24.1,0],["2026-10-20T08",13.3,27.9,0],["2026-10-20T09",13.1,28.3,0],["2026-10-20T10",10.4,24.4,0],["2026-10-20T11",10.1,24.9,0],["2026-10-20T12",14.2,30.9,0],["2026-10-20T13",14.8,31.1,0],["2026-10-20T14",13.4,28.7,0],["2026-10-20T15",13.5,28.7,0],["2026-10-20T16",13.3,29.2,0]],"d-002-apodaca-centro":[["2026-10-20T05",10.3,23.8,0],["2026-10-20T06",10.8,24.7,0],["2026-10-20T07",11.0,24.2,0],["2026-10-20T08",10.4,23.5,0],["2026-10-20T09",11.4,25.3,0],["2026-10-20T10",10.3,24.6,0],["2026-10-20T11",9.5,25.4,0],["2026-10-20T12",10.8,27.3,0],["2026-10-20T13",10.8,28.5,0],["2026-10-20T14",9.8,27.9,0],["2026-10-20T15",10.1,29.4,0],["2026-10-20T16",10.2,29.7,0]],"a-005-av-clouthier":[["2026-10-20T05",10.5,27.0,0],["2026-10-20T06",11.8,29.8,0],["2026-10-20T07",15.5,35.6,0],["2026-10-20T08",14.1,33.5,0],["2026-10-20T09",15.0,33.5,0],["2026-10-20T10",10.2,26.7,0],["2026-10-20T11",10.4,27.8,0],["2026-10-20T12",10.2,27.2,0],["2026-10-20T13",13.1,29.2,0],["2026-10-20T14",15.1,31.3,0],["2026-10-20T15",15.6,31.5,0],["2026-10-20T16",11.8,25.5,0]],"e-001-av-raul-salinas":[["2026-10-20T05",8.8,21.1,0],["2026-10-20T06",8.8,21.3,0],["2026-10-20T07",12.4,26.3,0],["2026-10-20T08",13.4,27.6,0],["2026-10-20T09",13.6,27.6,0],["2026-10-20T10",12.8,24.5,0],["2026-10-20T11",12.7,26.5,0],["2026-10-20T12",14.4,30.4,0],["2026-10-20T13",14.2,30.6,0],["2026-10-20T14",11.5,27.7,0],["2026-10-20T15",12.1,26.9,0],["2026-10-20T16",11.2,25.3,0]],"b-003-camino-real":[["2026-10-20T05",9.2,26.8,0],["2026-10-20T06",10.9,29.0,0],["2026-10-20T07",10.1,28.1,0],["2026-10-20T08",10.2,27.9,0],["2026-10-20T09",11.9,29.6,0],["2026-10-20T10",10.3,27.2,0],["2026-10-20T11",8.5,24.2,0],["2026-10-20T12",9.9,26.2,0],["2026-10-20T13",11.6,27.2,0],["2026-10-20T14",10.8,26.3,0],["2026-10-20T15",12.4,27.4,0],["2026-10-20T16",9.6,24.8,0]],"casa-naranjos":[["2026-10-20T05",7.7,20.0,0],["2026-10-20T06",7.4,20.9,0],["2026-10-20T07",9.8,24.5,0],["2026-10-20T08",8.0,22.1,0],["2026-10-20T09",9.6,24.0,0],["2026-10-20T10",11.0,25.8,0],["2026-10-20T11",9.2,25.5,0],["2026-10-20T12",9.4,26.0,0],["2026-10-20T13",10.8,25.0,0],["2026-10-20T14",11.7,25.5,0],["2026-10-20T15",10.8,24.3,0],["2026-10-20T16",8.9,22.9,0]],"a-004-colinas-de-san-jeronimo":[["2026-10-20T05",11.4,25.2,0],["2026-10-20T06",11.1,24.7,0],["2026-10-20T07",11.7,26.1,0],["2026-10-20T08",10.8,25.4,0],["2026-10-20T09",12.2,28.8,0],["2026-10-20T10",19.6,38.0,0],["2026-10-20T11",15.9,32.7,0],["2026-10-20T12",12.6,29.0,0],["2026-10-20T13",18.0,35.1,0],["2026-10-20T14",17.9,34.7,0],["2026-10-20T15",16.6,32.7,0],["2026-10-20T16",11.7,26.8,0]],"a-003-colonia-del-valle":[["2026-10-20T05",7.8,22.6,0],["2026-10-20T06",11.3,26.9,0],["2026-10-20T07",10.3,25.9,0],["2026-10-20T08",11.0,27.3,0],["2026-10-20T09",11.0,28.8,0],["2026-10-20T10",15.8,35.6,0],["2026-10-20T11",14.7,36.8,0],["2026-10-20T12",10.6,27.6,0],["2026-10-20T13",12.7,29.3,0],["2026-10-20T14",13.5,29.9,0],["2026-10-20T15",10.9,26.9,0],["2026-10-20T16",9.1,24.7,0]],"f-001-dominio-cumbres":[["2026-10-20T05",21.0,41.7,0],["2026-10-20T06",14.9,28.4,0],["2026-10-20T07",14.4,28.0,0],["2026-10-20T08",15.9,32.4,0],["2026-10-20T09",19.8,41.4,0],["2026-10-20T10",23.2,48.4,0],["2026-10-20T11",22.3,45.3,0],["2026-10-20T12",21.2,44.1,0],["2026-10-20T13",19.8,40.8,0],["2026-10-20T14",19.6,39.2,0],["2026-10-20T15",14.9,28.6,0],["2026-10-20T16",13.9,26.8,0]],"estadio-banorte":[["2026-10-20T05",8.0,22.8,0],["2026-10-20T06",7.9,23.6,0],["2026-10-20T07",7.7,23.3,0],["2026-10-20T08",8.0,24.2,0],["2026-10-20T09",9.6,25.5,0],["2026-10-20T10",11.6,28.5,0],["2026-10-20T11",9.3,26.2,0],["2026-10-20T12",9.6,26.5,0],["2026-10-20T13",11.2,26.6,0],["2026-10-20T14",11.2,26.4,0],["2026-10-20T15",9.8,25.1,0],["2026-10-20T16",9.6,25.4,0]],"c-008-hacienda-el-campanario":[["2026-10-20T05",10.1,23.2,0],["2026-10-20T06",10.4,23.6,0],["2026-10-20T07",10.5,23.2,0],["2026-10-20T08",10.7,23.2,0],["2026-10-20T09",9.9,24.1,0],["2026-10-20T10",9.9,25.0,0],["2026-10-20T11",9.5,25.4,0],["2026-10-20T12",9.6,26.6,0],["2026-10-20T13",9.5,26.4,0],["2026-10-20T14",8.9,26.4,0],["2026-10-20T15",8.9,26.5,0],["2026-10-20T16",8.8,26.4,0]],"d-004-hacienda-las-palmas":[["2026-10-20T05",9.6,22.3,0],["2026-10-20T06",11.4,25.3,0],["2026-10-20T07",13.8,29.1,0],["2026-10-20T08",13.9,29.5,0],["2026-10-20T09",13.4,26.8,0],["2026-10-20T10",12.5,24.7,0],["2026-10-20T11",12.4,27.3,0],["2026-10-20T12",12.4,28.3,0],["2026-10-20T13",11.7,28.3,0],["2026-10-20T14",11.6,27.6,0],["2026-10-20T15",10.1,26.1,0],["2026-10-20T16",11.8,27.9,0]],"hospital-zambrano-hellion":[["2026-10-20T05",6.3,20.1,0],["2026-10-20T06",6.4,20.1,0],["2026-10-20T07",8.5,22.1,0],["2026-10-20T08",9.6,23.7,0],["2026-10-20T09",7.9,22.3,0],["2026-10-20T10",8.4,22.5,0],["2026-10-20T11",8.9,23.4,0],["2026-10-20T12",8.0,21.3,0],["2026-10-20T13",10.3,22.7,0],["2026-10-20T14",9.7,22.7,0],["2026-10-20T15",8.3,22.2,0],["2026-10-20T16",7.6,21.3,0]],"f-007-heroes-lincoln":[["2026-10-20T05",17.1,29.8,0],["2026-10-20T06",15.2,26.7,0],["2026-10-20T07",16.2,28.4,0],["2026-10-20T08",15.6,28.5,0],["2026-10-20T09",14.4,28.4,0],["2026-10-20T10",14.3,27.3,0],["2026-10-20T11",10.5,23.9,0],["2026-10-20T12",10.3,24.3,0],["2026-10-20T13",14.5,27.5,0],["2026-10-20T14",15.4,29.6,0],["2026-10-20T15",14.3,28.1,0],["2026-10-20T16",14.3,27.0,0]],"c-004-jardines-de-la-silla":[["2026-10-20T05",10.0,26.3,0],["2026-10-20T06",10.0,26.5,0],["2026-10-20T07",10.4,27.3,0],["2026-10-20T08",13.2,30.8,0],["2026-10-20T09",13.0,27.9,0],["2026-10-20T10",10.0,26.4,0],["2026-10-20T11",9.5,28.7,0],["2026-10-20T12",11.3,29.9,0],["2026-10-20T13",13.3,31.4,0],["2026-10-20T14",14.9,34.3,0],["2026-10-20T15",14.3,32.1,0],["2026-10-20T16",11.5,27.4,0]],"e-002-joyas-de-anahuac":[["2026-10-20T05",9.2,22.5,0],["2026-10-20T06",10.2,24.4,0],["2026-10-20T07",14.2,30.8,0],["2026-10-20T08",15.0,31.7,0],["2026-10-20T09",14.8,31.4,0],["2026-10-20T10",12.1,25.4,0],["2026-10-20T11",13.1,28.5,0],["2026-10-20T12",14.3,31.3,0],["2026-10-20T13",13.7,30.7,0],["2026-10-20T14",12.0,28.9,0],["2026-10-20T15",12.0,28.9,0],["2026-10-20T16",13.7,29.8,0]],"b-001-la-rioja":[["2026-10-20T05",7.8,22.4,0],["2026-10-20T06",7.5,22.1,0],["2026-10-20T07",7.8,22.6,0],["2026-10-20T08",7.8,22.5,0],["2026-10-20T09",8.0,24.1,0],["2026-10-20T10",7.7,24.1,0],["2026-10-20T11",7.8,25.8,0],["2026-10-20T12",7.9,25.2,0],["2026-10-20T13",8.2,24.5,0],["2026-10-20T14",7.8,22.0,0],["2026-10-20T15",8.1,22.8,0],["2026-10-20T16",8.4,24.0,0]],"f-006-los-cedros":[["2026-10-20T05",10.2,24.1,0],["2026-10-20T06",11.1,24.2,0],["2026-10-20T07",12.3,26.7,0],["2026-10-20T08",12.0,27.8,0],["2026-10-20T09",14.6,31.1,0],["2026-10-20T10",13.4,29.5,0],["2026-10-20T11",14.1,31.4,0],["2026-10-20T12",12.1,29.3,0],["2026-10-20T13",17.3,34.1,0],["2026-10-20T14",14.3,30.4,0],["2026-10-20T15",13.5,29.1,0],["2026-10-20T16",13.4,28.8,0]],"c-003-los-faisanes":[["2026-10-20T05",11.6,26.9,0],["2026-10-20T06",10.7,24.8,0],["2026-10-20T07",13.1,28.6,0],["2026-10-20T08",13.3,28.2,0],["2026-10-20T09",11.5,24.9,0],["2026-10-20T10",10.3,25.0,0],["2026-10-20T11",10.7,26.7,0],["2026-10-20T12",14.8,31.2,0],["2026-10-20T13",13.0,29.2,0],["2026-10-20T14",11.0,27.3,0],["2026-10-20T15",10.1,26.3,0],["2026-10-20T16",12.4,28.6,0]],"f-003-mitras-poniente":[["2026-10-20T05",13.1,26.7,0],["2026-10-20T06",15.2,30.1,0],["2026-10-20T07",14.5,29.2,0],["2026-10-20T08",20.8,38.5,0],["2026-10-20T09",21.2,38.9,0],["2026-10-20T10",23.5,41.7,0],["2026-10-20T11",21.1,37.2,0],["2026-10-20T12",20.6,37.8,0],["2026-10-20T13",18.1,34.0,0],["2026-10-20T14",16.5,32.2,0],["2026-10-20T15",14.7,30.0,0],["2026-10-20T16",13.2,28.1,0]],"c-005-monte-verde":[["2026-10-20T05",14.1,54.3,0],["2026-10-20T06",16.8,58.9,0],["2026-10-20T07",19.1,62.9,0],["2026-10-20T08",18.0,60.6,0],["2026-10-20T09",17.8,59.7,0],["2026-10-20T10",15.2,56.2,0],["2026-10-20T11",15.6,57.2,0],["2026-10-20T12",16.7,57.4,0],["2026-10-20T13",19.4,61.2,0],["2026-10-20T14",15.2,55.4,0],["2026-10-20T15",18.9,63.2,0],["2026-10-20T16",20.0,64.5,0]],"c-002-nueva-cadereyta":[["2026-10-20T05",9.2,22.1,0],["2026-10-20T06",14.6,31.5,0],["2026-10-20T07",19.6,40.2,0],["2026-10-20T08",15.5,33.0,0],["2026-10-20T09",13.7,30.8,0],["2026-10-20T10",9.9,26.7,0],["2026-10-20T11",12.5,30.0,0],["2026-10-20T12",10.8,30.4,0],["2026-10-20T13",10.0,29.2,0],["2026-10-20T14",10.1,29.7,0],["2026-10-20T15",12.0,33.0,0],["2026-10-20T16",13.2,35.0,0]],"d-001-nuevo-mezquital":[["2026-10-20T05",12.3,50.5,0],["2026-10-20T06",13.8,53.0,0],["2026-10-20T07",17.7,58.2,0],["2026-10-20T08",18.4,58.9,0],["2026-10-20T09",15.9,55.1,0],["2026-10-20T10",14.5,54.1,0],["2026-10-20T11",14.7,53.4,0],["2026-10-20T12",16.0,54.2,0],["2026-10-20T13",14.6,53.1,0],["2026-10-20T14",15.3,54.1,0],["2026-10-20T15",13.3,52.5,0],["2026-10-20T16",15.1,53.6,0]],"b-006-obrera":[["2026-10-20T05",9.0,22.7,0],["2026-10-20T06",8.8,23.5,0],["2026-10-20T07",8.2,23.8,0],["2026-10-20T08",8.8,25.2,0],["2026-10-20T09",13.5,30.4,0],["2026-10-20T10",13.6,30.8,0],["2026-10-20T11",10.6,28.3,0],["2026-10-20T12",11.3,28.7,0],["2026-10-20T13",13.9,30.2,0],["2026-10-20T14",14.4,29.5,0],["2026-10-20T15",13.9,29.3,0],["2026-10-20T16",12.8,28.3,0]],"parque-central":[["2026-10-20T05",7.2,20.9,0],["2026-10-20T06",6.8,20.7,0],["2026-10-20T07",7.0,21.5,0],["2026-10-20T08",7.2,21.9,0],["2026-10-20T09",8.6,23.7,0],["2026-10-20T10",9.8,25.6,0],["2026-10-20T11",8.8,25.1,0],["2026-10-20T12",8.8,24.7,0],["2026-10-20T13",10.1,24.8,0],["2026-10-20T14",9.7,24.0,0],["2026-10-20T15",8.8,23.2,0],["2026-10-20T16",8.2,22.3,0]],"b-002-pedregal-la-silla":[["2026-10-20T05",7.8,24.1,0],["2026-10-20T06",8.0,24.1,0],["2026-10-20T07",8.3,24.4,0],["2026-10-20T08",8.9,25.6,0],["2026-10-20T09",8.9,25.9,0],["2026-10-20T10",8.8,25.9,0],["2026-10-20T11",7.8,24.3,0],["2026-10-20T12",7.7,25.1,0],["2026-10-20T13",8.3,25.4,0],["2026-10-20T14",8.8,25.3,0],["2026-10-20T15",8.7,23.7,0],["2026-10-20T16",9.3,24.9,0]],"prepatec-cumbres-canchas":[["2026-10-20T05",7.3,22.9,0],["2026-10-20T06",9.2,25.6,0],["2026-10-20T07",10.5,27.8,0],["2026-10-20T08",9.1,26.5,0],["2026-10-20T09",9.3,27.4,0],["2026-10-20T10",11.8,31.9,0],["2026-10-20T11",11.4,31.8,0],["2026-10-20T12",7.8,25.7,0],["2026-10-20T13",12.4,33.3,0],["2026-10-20T14",11.0,30.8,0],["2026-10-20T15",10.8,30.6,0],["2026-10-20T16",10.1,29.0,0]],"prepatec-cumbres-caseta":[["2026-10-20T05",8.9,18.6,0],["2026-10-20T06",10.5,20.5,0],["2026-10-20T07",11.8,22.2,0],["2026-10-20T08",11.4,23.7,0],["2026-10-20T09",12.2,24.8,0],["2026-10-20T10",15.5,29.1,0],["2026-10-20T11",14.5,28.8,0],["2026-10-20T12",10.4,23.1,0],["2026-10-20T13",14.8,26.9,0],["2026-10-20T14",14.1,26.7,0],["2026-10-20T15",13.4,25.8,0],["2026-10-20T16",12.1,23.6,0]],"prepatec-egl-biblioteca":[["2026-10-20T05",7.1,21.9,0],["2026-10-20T06",7.2,21.7,0],["2026-10-20T07",7.8,22.6,0],["2026-10-20T08",7.8,22.9,0],["2026-10-20T09",7.8,23.8,0],["2026-10-20T10",8.3,25.0,0],["2026-10-20T11",8.5,26.9,0],["2026-10-20T12",8.4,27.8,0],["2026-10-20T13",7.8,24.7,0],["2026-10-20T14",7.8,24.8,0],["2026-10-20T15",7.8,22.7,0],["2026-10-20T16",7.9,22.9,0]],"prepatec-egl-robotica":[["2026-10-20T05",7.2,20.9,0],["2026-10-20T06",7.1,20.1,0],["2026-10-20T07",8.0,21.8,0],["2026-10-20T08",7.7,22.5,0],["2026-10-20T09",8.0,23.4,0],["2026-10-20T10",8.3,24.4,0],["2026-10-20T11",8.5,26.5,0],["2026-10-20T12",8.1,26.1,0],["2026-10-20T13",7.5,22.9,0],["2026-10-20T14",7.5,22.2,0],["2026-10-20T15",7.7,20.9,0],["2026-10-20T16",7.9,21.3,0]],"prepatec-egs-canchas":[["2026-10-20T05",10.1,25.1,0],["2026-10-20T06",11.6,27.2,0],["2026-10-20T07",12.1,28.9,0],["2026-10-20T08",11.8,28.9,0],["2026-10-20T09",10.5,27.4,0],["2026-10-20T10",16.4,34.5,0],["2026-10-20T11",14.0,31.6,0],["2026-10-20T12",9.4,25.3,0],["2026-10-20T13",12.6,27.7,0],["2026-10-20T14",13.2,28.2,0],["2026-10-20T15",12.2,27.4,0],["2026-10-20T16",9.5,25.2,0]],"prepatec-egs-caseta":[["2026-10-20T05",7.1,25.5,0],["2026-10-20T06",7.5,25.7,0],["2026-10-20T07",7.8,26.8,0],["2026-10-20T08",8.2,28.2,0],["2026-10-20T09",6.7,26.4,0],["2026-10-20T10",12.2,35.5,0],["2026-10-20T11",9.5,31.8,0],["2026-10-20T12",5.3,24.3,0],["2026-10-20T13",9.9,31.7,0],["2026-10-20T14",10.7,33.3,0],["2026-10-20T15",8.2,29.4,0],["2026-10-20T16",5.9,25.1,0]],"prepatec-santa-catarina-canchas":[["2026-10-20T05",4.9,20.3,0],["2026-10-20T06",5.4,20.9,0],["2026-10-20T07",5.6,21.5,0],["2026-10-20T08",5.8,23.1,0],["2026-10-20T09",7.9,28.1,0],["2026-10-20T10",7.5,27.6,0],["2026-10-20T11",8.3,29.3,0],["2026-10-20T12",7.5,27.1,0],["2026-10-20T13",9.6,30.0,0],["2026-10-20T14",11.8,33.6,0],["2026-10-20T15",9.1,29.3,0],["2026-10-20T16",6.3,24.6,0]],"prepatec-santa-catarina-estacionamiento":[["2026-10-20T05",7.0,18.9,0],["2026-10-20T06",7.2,19.1,0],["2026-10-20T07",7.7,20.1,0],["2026-10-20T08",8.3,22.3,0],["2026-10-20T09",10.8,26.9,0],["2026-10-20T10",10.7,26.0,0],["2026-10-20T11",11.8,26.8,0],["2026-10-20T12",10.4,23.1,0],["2026-10-20T13",13.2,26.1,0],["2026-10-20T14",15.4,28.2,0],["2026-10-20T15",11.4,24.0,0],["2026-10-20T16",8.6,20.5,0]],"prepatec-valle-alto-canchas":[["2026-10-20T05",4.1,20.2,0],["2026-10-20T06",4.0,19.5,0],["2026-10-20T07",4.2,19.8,0],["2026-10-20T08",4.3,20.6,0],["2026-10-20T09",4.2,20.4,0],["2026-10-20T10",4.6,21.8,0],["2026-10-20T11",4.0,22.1,0],["2026-10-20T12",3.8,22.9,0],["2026-10-20T13",4.2,22.8,0],["2026-10-20T14",4.0,21.9,0],["2026-10-20T15",4.2,21.3,0],["2026-10-20T16",4.2,20.9,0]],"prepatec-valle-alto-explanada":[["2026-10-20T05",6.1,17.6,0],["2026-10-20T06",5.8,16.6,0],["2026-10-20T07",5.8,16.8,0],["2026-10-20T08",5.8,16.5,0],["2026-10-20T09",6.3,16.7,0],["2026-10-20T10",6.9,18.1,0],["2026-10-20T11",7.1,21.5,0],["2026-10-20T12",6.9,21.3,0],["2026-10-20T13",7.4,21.5,0],["2026-10-20T14",7.5,21.4,0],["2026-10-20T15",7.0,17.9,0],["2026-10-20T16",7.1,16.2,0]],"prepatec-valle-alto-nivel-5":[["2026-10-20T05",7.0,22.4,0],["2026-10-20T06",7.1,22.2,0],["2026-10-20T07",7.0,21.9,0],["2026-10-20T08",7.1,22.1,0],["2026-10-20T09",7.6,21.5,0],["2026-10-20T10",8.3,22.8,0],["2026-10-20T11",7.8,22.9,0],["2026-10-20T12",7.5,23.3,0],["2026-10-20T13",8.0,23.2,0],["2026-10-20T14",8.0,22.1,0],["2026-10-20T15",8.1,21.7,0],["2026-10-20T16",8.2,21.9,0]],"d-003-privadas-del-canada":[["2026-10-20T05",9.3,17.7,0],["2026-10-20T06",8.6,16.7,0],["2026-10-20T07",10.2,20.5,0],["2026-10-20T08",9.4,18.7,0],["2026-10-20T09",9.4,18.5,0],["2026-10-20T10",14.0,26.9,0],["2026-10-20T11",10.4,19.9,0],["2026-10-20T12",9.3,17.8,0],["2026-10-20T13",7.5,14.8,0],["2026-10-20T14",7.5,14.5,0],["2026-10-20T15",4.3,9.0,0],["2026-10-20T16",5.3,11.1,0]],"f-002-puerta-de-hierro":[["2026-10-20T05",10.7,20.0,0],["2026-10-20T06",12.0,21.3,0],["2026-10-20T07",13.9,23.7,0],["2026-10-20T08",17.5,28.9,0],["2026-10-20T09",21.3,36.6,0],["2026-10-20T10",19.0,34.6,0],["2026-10-20T11",12.2,26.6,0],["2026-10-20T12",12.2,26.2,0],["2026-10-20T13",15.3,29.0,0],["2026-10-20T14",14.1,27.1,0],["2026-10-20T15",13.8,26.9,0],["2026-10-20T16",12.1,23.3,0]],"b-004-pio-x":[["2026-10-20T05",8.5,22.6,0],["2026-10-20T06",8.9,22.7,0],["2026-10-20T07",8.5,23.2,0],["2026-10-20T08",8.6,24.1,0],["2026-10-20T09",9.3,25.1,0],["2026-10-20T10",11.4,27.3,0],["2026-10-20T11",10.5,27.5,0],["2026-10-20T12",9.6,25.4,0],["2026-10-20T13",12.6,27.7,0],["2026-10-20T14",12.5,27.9,0],["2026-10-20T15",10.9,25.9,0],["2026-10-20T16",9.0,24.1,0]],"b-005-rio-la-silla":[["2026-10-20T05",4.8,9.0,0],["2026-10-20T06",5.5,10.6,0],["2026-10-20T07",6.8,12.7,0],["2026-10-20T08",7.3,13.8,0],["2026-10-20T09",7.9,15.4,0],["2026-10-20T10",9.7,18.9,0],["2026-10-20T11",5.1,10.2,0],["2026-10-20T12",5.4,11.2,0],["2026-10-20T13",9.1,17.5,0],["2026-10-20T14",9.6,18.2,0],["2026-10-20T15",13.1,23.5,0],["2026-10-20T16",12.0,22.1,0]],"san-juan-bosco":[["2026-10-20T05",7.8,23.0,0],["2026-10-20T06",7.5,22.4,0],["2026-10-20T07",8.3,23.8,0],["2026-10-20T08",8.1,24.1,0],["2026-10-20T09",9.2,25.7,0],["2026-10-20T10",10.6,27.2,0],["2026-10-20T11",8.7,24.3,0],["2026-10-20T12",9.2,23.1,0],["2026-10-20T13",10.4,23.2,0],["2026-10-20T14",10.2,23.8,0],["2026-10-20T15",9.2,23.5,0],["2026-10-20T16",8.8,23.6,0]],"a-001-san-pedro-centro":[["2026-10-20T05",8.1,21.9,0],["2026-10-20T06",8.9,23.7,0],["2026-10-20T07",10.4,25.6,0],["2026-10-20T08",11.5,27.9,0],["2026-10-20T09",11.7,28.4,0],["2026-10-20T10",12.8,29.3,0],["2026-10-20T11",14.0,30.2,0],["2026-10-20T12",12.4,27.8,0],["2026-10-20T13",13.9,29.1,0],["2026-10-20T14",15.7,31.0,0],["2026-10-20T15",11.8,26.8,0],["2026-10-20T16",9.4,24.8,0]],"tec-cedes":[["2026-10-20T05",7.4,21.9,0],["2026-10-20T06",6.5,19.5,0],["2026-10-20T07",6.9,20.1,0],["2026-10-20T08",7.1,21.2,0],["2026-10-20T09",8.6,24.0,0],["2026-10-20T10",11.4,28.7,0],["2026-10-20T11",9.3,27.4,0],["2026-10-20T12",8.7,23.8,0],["2026-10-20T13",9.9,22.1,0],["2026-10-20T14",9.8,22.4,0],["2026-10-20T15",8.9,22.6,0],["2026-10-20T16",8.1,22.3,0]],"tec-centrales":[["2026-10-20T05",7.9,22.6,0],["2026-10-20T06",7.8,23.7,0],["2026-10-20T07",8.0,24.1,0],["2026-10-20T08",8.1,24.8,0],["2026-10-20T09",9.7,27.0,0],["2026-10-20T10",10.9,28.8,0],["2026-10-20T11",9.4,28.1,0],["2026-10-20T12",9.6,28.0,0],["2026-10-20T13",11.0,27.1,0],["2026-10-20T14",10.7,26.5,0],["2026-10-20T15",9.9,26.1,0],["2026-10-20T16",9.0,25.2,0]],"tec-jardin-de-las-carreras":[["2026-10-20T05",4.9,21.7,0],["2026-10-20T06",4.5,21.5,0],["2026-10-20T07",4.6,21.9,0],["2026-10-20T08",4.8,22.6,0],["2026-10-20T09",5.5,24.1,0],["2026-10-20T10",6.0,25.5,0],["2026-10-20T11",5.1,24.4,0],["2026-10-20T12",4.8,24.3,0],["2026-10-20T13",6.3,26.0,0],["2026-10-20T14",6.6,26.2,0],["2026-10-20T15",6.5,25.9,0],["2026-10-20T16",4.8,23.1,0]],"tec-rectoria":[["2026-10-20T05",7.5,22.5,0],["2026-10-20T06",7.5,23.2,0],["2026-10-20T07",8.2,24.4,0],["2026-10-20T08",7.6,23.8,0],["2026-10-20T09",8.4,24.6,0],["2026-10-20T10",9.9,27.1,0],["2026-10-20T11",9.1,27.1,0],["2026-10-20T12",9.0,27.2,0],["2026-10-20T13",10.1,26.0,0],["2026-10-20T14",9.7,24.8,0],["2026-10-20T15",9.2,24.9,0],["2026-10-20T16",8.4,24.2,0]],"tecmi-cumbres-jardineras":[["2026-10-20T05",9.1,18.4,0],["2026-10-20T06",9.9,19.0,0],["2026-10-20T07",11.9,20.5,0],["2026-10-20T08",13.4,28.4,0],["2026-10-20T09",13.6,27.9,0],["2026-10-20T14",13.8,27.2,-1],["2026-10-20T15",13.2,26.2,0],["2026-10-20T16",10.6,19.8,0]],"tecmi-guadalupe-caseta":[["2026-10-20T05",5.3,22.2,0],["2026-10-20T06",5.2,22.3,0],["2026-10-20T07",5.8,23.5,0],["2026-10-20T08",6.3,24.8,0],["2026-10-20T09",7.3,25.8,0],["2026-10-20T10",4.1,21.0,0],["2026-10-20T11",4.2,21.8,0],["2026-10-20T12",5.4,24.2,0],["2026-10-20T13",8.1,28.6,0],["2026-10-20T14",6.1,24.4,0],["2026-10-20T15",7.4,26.0,0],["2026-10-20T16",5.8,23.6,0]],"tecmi-guadalupe-explanada":[["2026-10-20T05",9.0,18.7,0],["2026-10-20T06",9.2,20.5,0],["2026-10-20T07",9.9,21.4,0],["2026-10-20T08",10.6,22.0,0],["2026-10-20T09",12.0,21.4,0],["2026-10-20T10",8.2,18.3,0],["2026-10-20T11",8.5,19.5,0],["2026-10-20T12",9.9,21.3,0],["2026-10-20T13",12.2,22.6,0],["2026-10-20T14",10.0,20.2,0],["2026-10-20T15",11.1,19.5,0],["2026-10-20T16",9.8,19.4,0]],"tecmi-las-torres-cafeteria":[["2026-10-20T05",7.6,21.8,0],["2026-10-20T06",7.8,21.4,0],["2026-10-20T07",10.1,24.9,0],["2026-10-20T08",9.2,23.7,0],["2026-10-20T09",8.6,22.6,0],["2026-10-20T10",8.6,22.9,0],["2026-10-20T11",9.7,25.3,0],["2026-10-20T12",9.1,24.6,0],["2026-10-20T13",8.3,23.1,0],["2026-10-20T14",8.0,22.3,0],["2026-10-20T15",8.0,21.2,0],["2026-10-20T16",8.1,21.1,0]],"tecmi-san-nicolas-estacionamiento":[["2026-10-20T05",7.6,19.3,0],["2026-10-20T06",8.9,21.8,0],["2026-10-20T07",8.9,22.4,0],["2026-10-20T08",12.4,27.5,0],["2026-10-20T09",11.2,25.9,0],["2026-10-20T10",8.6,21.0,0],["2026-10-20T11",14.9,34.2,0],["2026-10-20T12",14.6,32.0,0],["2026-10-20T13",13.3,30.4,0],["2026-10-20T14",12.3,28.5,0],["2026-10-20T15",11.6,26.3,0],["2026-10-20T16",12.7,27.7,0]],"tecmi-san-nicolas-explanada":[["2026-10-20T05",4.9,20.5,0],["2026-10-20T06",6.0,22.5,0],["2026-10-20T07",5.7,22.4,0],["2026-10-20T08",7.8,26.4,0],["2026-10-20T09",6.7,24.4,0],["2026-10-20T10",5.7,22.6,0],["2026-10-20T11",6.2,25.5,0],["2026-10-20T12",9.3,31.2,0],["2026-10-20T13",8.3,29.8,0],["2026-10-20T14",7.8,28.1,0],["2026-10-20T15",8.1,28.1,0],["2026-10-20T16",8.4,28.2,0]],"f-005-topo-chico":[["2026-10-20T05",13.4,26.8,0],["2026-10-20T06",14.7,29.0,0],["2026-10-20T07",16.8,32.3,0],["2026-10-20T08",16.1,31.1,0],["2026-10-20T09",25.6,40.7,0],["2026-10-20T10",47.0,67.2,1],["2026-10-20T11",24.9,44.6,1],["2026-10-20T12",17.8,34.6,1],["2026-10-20T13",17.3,33.4,0],["2026-10-20T14",16.1,31.4,0],["2026-10-20T15",15.7,30.7,0],["2026-10-20T16",13.9,28.0,0]],"a-002-via-cordillera":[["2026-10-20T05",6.3,17.1,0],["2026-10-20T06",6.4,17.2,0],["2026-10-20T07",6.3,17.5,0],["2026-10-20T08",6.9,19.4,0],["2026-10-20T09",11.4,28.8,0],["2026-10-20T10",14.0,33.1,0],["2026-10-20T11",14.7,34.4,0],["2026-10-20T12",13.1,30.8,0],["2026-10-20T13",15.1,31.9,0],["2026-10-20T14",17.6,34.8,0],["2026-10-20T15",12.6,27.7,0],["2026-10-20T16",10.1,25.3,0]]};
+const SENSOR_HOURLY_META = {"fuente": "datos/datos_sensores_por_hora.xlsx", "horas": 24, "desde": "2026-10-19T17", "hasta": "2026-10-20T16", "campos": ["hora", "pm25", "pm10", "categoria", "temp", "humedad"]};
+const SENSOR_HOURLY = {"aeropuerto":[["2026-10-19T17",5.2,26.8,0,23.7,54.0],["2026-10-19T18",4.8,25.3,0,23.0,58.0],["2026-10-19T19",6.9,28.0,0,22.3,61.0],["2026-10-19T20",7.3,28.5,0,22.0,62.0],["2026-10-19T21",6.2,25.9,0,21.2,64.0],["2026-10-19T22",7.8,28.6,0,21.3,63.0],["2026-10-19T23",6.1,25.6,0,20.9,64.0],["2026-10-20T00",5.2,23.9,0,20.8,66.0],["2026-10-20T01",4.7,21.6,0,20.4,72.0],["2026-10-20T02",6.4,23.3,0,19.4,77.0],["2026-10-20T03",4.9,20.5,0,19.5,78.0],["2026-10-20T04",4.9,20.4,0,19.6,78.0],["2026-10-20T05",5.2,20.8,0,19.7,79.0],["2026-10-20T06",4.8,19.9,0,19.6,81.0],["2026-10-20T07",4.6,19.1,0,19.9,83.0],["2026-10-20T08",6.0,21.1,0,19.9,84.0],["2026-10-20T09",6.8,23.3,0,21.0,81.0],["2026-10-20T10",5.5,21.5,0,21.5,80.0],["2026-10-20T11",3.7,20.0,0,22.9,74.0],["2026-10-20T12",3.6,20.9,0,23.8,70.0],["2026-10-20T13",4.0,22.1,0,24.6,68.0],["2026-10-20T14",3.9,22.5,0,25.2,66.0],["2026-10-20T15",3.9,22.9,0,25.3,64.0],["2026-10-20T16",3.8,22.8,0,25.2,64.0]],"altavista":[["2026-10-19T17",7.9,28.4,0,25.6,43.0],["2026-10-19T18",8.1,28.1,0,25.0,45.0],["2026-10-19T19",8.2,27.9,0,25.0,46.0],["2026-10-19T20",8.5,27.6,0,25.0,47.0],["2026-10-19T21",12.0,32.2,0,24.4,49.0],["2026-10-19T22",8.0,25.6,0,24.4,51.0],["2026-10-19T23",8.2,26.0,0,24.4,51.0],["2026-10-20T00",8.0,25.2,0,24.4,52.0],["2026-10-20T01",9.5,26.3,0,24.4,54.0],["2026-10-20T02",8.0,24.8,0,24.4,53.0],["2026-10-20T03",8.0,24.8,0,24.4,53.0],["2026-10-20T04",8.3,24.1,0,24.4,56.0],["2026-10-20T05",8.0,23.7,0,23.9,56.0],["2026-10-20T06",7.9,23.1,0,23.3,57.0],["2026-10-20T07",8.1,23.4,0,23.9,57.0],["2026-10-20T08",19.3,41.1,0,24.4,56.0],["2026-10-20T09",27.8,53.5,0,25.6,54.0],["2026-10-20T10",27.7,52.5,1,26.1,53.0],["2026-10-20T11",14.3,34.7,0,27.8,50.0],["2026-10-20T12",9.9,28.5,0,28.3,51.0],["2026-10-20T13",10.2,27.1,0,27.2,55.0],["2026-10-20T14",10.2,27.3,0,27.2,55.0],["2026-10-20T15",8.7,24.0,0,26.1,58.0],["2026-10-20T16",8.8,23.9,0,26.1,59.0]],"f-004-anahuac":[["2026-10-19T17",9.8,32.3,0,25.6,41.0],["2026-10-19T18",9.7,30.6,0,23.9,45.0],["2026-10-19T19",11.0,31.5,0,23.9,47.0],["2026-10-19T20",11.1,31.8,0,23.9,47.0],["2026-10-19T21",13.0,33.2,0,23.3,49.0],["2026-10-19T22",14.5,35.7,0,23.3,50.0],["2026-10-19T23",9.4,27.9,0,23.3,51.0],["2026-10-20T00",12.6,32.1,0,23.3,52.0],["2026-10-20T01",11.2,28.6,0,22.8,55.0],["2026-10-20T02",9.1,23.2,0,22.2,61.0],["2026-10-20T03",8.6,20.7,0,21.7,66.0],["2026-10-20T04",9.0,20.1,0,21.7,69.0],["2026-10-20T05",9.5,20.6,0,21.7,69.0],["2026-10-20T06",9.8,22.0,0,22.2,66.0],["2026-10-20T07",10.8,24.1,0,22.8,65.0],["2026-10-20T08",13.3,27.9,0,22.8,65.0],["2026-10-20T09",13.1,28.3,0,23.3,64.0],["2026-10-20T10",10.4,24.4,0,23.9,63.0],["2026-10-20T11",10.1,24.9,0,24.4,62.0],["2026-10-20T12",14.2,30.9,0,25.6,57.0],["2026-10-20T13",14.8,31.1,0,26.1,57.0],["2026-10-20T14",13.4,28.7,0,25.0,60.0],["2026-10-20T15",13.5,28.7,0,25.0,61.0],["2026-10-20T16",13.3,29.2,0,25.6,59.0]],"d-002-apodaca-centro":[["2026-10-19T17",9.3,30.0,0,26.1,44.0],["2026-10-19T18",9.3,29.2,0,25.6,47.0],["2026-10-19T19",10.4,30.6,0,25.6,48.0],["2026-10-19T20",14.3,36.1,0,26.1,48.0],["2026-10-19T21",13.1,33.1,0,25.0,52.0],["2026-10-19T22",14.1,34.7,0,25.0,51.0],["2026-10-19T23",14.7,35.6,0,25.0,51.0],["2026-10-20T00",10.1,27.3,0,24.4,54.0],["2026-10-20T01",8.7,24.3,0,24.4,57.0],["2026-10-20T02",8.8,23.1,0,23.9,61.0],["2026-10-20T03",8.8,22.4,0,23.9,62.0],["2026-10-20T04",9.7,23.5,0,23.9,63.0],["2026-10-20T05",10.3,23.8,0,23.9,64.0],["2026-10-20T06",10.8,24.7,0,23.9,65.0],["2026-10-20T07",11.0,24.2,0,23.9,66.0],["2026-10-20T08",10.4,23.5,0,24.4,66.0],["2026-10-20T09",11.4,25.3,0,24.4,66.0],["2026-10-20T10",10.3,24.6,0,25.0,63.0],["2026-10-20T11",9.5,25.4,0,26.1,59.0],["2026-10-20T12",10.8,27.3,0,27.2,57.0],["2026-10-20T13",10.8,28.5,0,28.3,54.0],["2026-10-20T14",9.8,27.9,0,28.3,53.0],["2026-10-20T15",10.1,29.4,0,28.9,51.0],["2026-10-20T16",10.2,29.7,0,27.8,52.0]],"a-005-av-clouthier":[["2026-10-19T17",8.9,29.6,0,23.3,45.0],["2026-10-19T18",8.9,28.5,0,22.8,47.0],["2026-10-19T19",10.4,30.4,0,23.3,47.0],["2026-10-19T20",9.6,28.4,0,22.8,49.0],["2026-10-19T21",8.6,26.4,0,22.2,51.0],["2026-10-19T22",8.0,25.6,0,22.2,52.0],["2026-10-19T23",10.0,27.5,0,22.2,53.0],["2026-10-20T00",13.4,32.1,0,22.2,53.0],["2026-10-20T01",10.3,26.1,0,21.7,57.0],["2026-10-20T02",12.3,29.1,0,21.7,58.0],["2026-10-20T03",10.9,27.0,0,21.1,58.0],["2026-10-20T04",9.5,24.9,0,21.1,58.0],["2026-10-20T05",10.5,27.0,0,21.1,58.0],["2026-10-20T06",11.8,29.8,0,21.7,56.0],["2026-10-20T07",15.5,35.6,0,21.7,56.0],["2026-10-20T08",14.1,33.5,0,22.2,54.0],["2026-10-20T09",15.0,33.5,0,23.9,54.0],["2026-10-20T10",10.2,26.7,0,24.4,56.0],["2026-10-20T11",10.4,27.8,0,25.6,53.0],["2026-10-20T12",10.2,27.2,0,25.0,54.0],["2026-10-20T13",13.1,29.2,0,25.0,56.0],["2026-10-20T14",15.1,31.3,0,25.0,56.0],["2026-10-20T15",15.6,31.5,0,24.4,58.0],["2026-10-20T16",11.8,25.5,0,23.9,62.0]],"e-001-av-raul-salinas":[["2026-10-19T17",9.1,30.3,0,25.6,43.0],["2026-10-19T18",9.3,29.4,0,25.0,46.0],["2026-10-19T19",9.8,29.2,0,25.0,48.0],["2026-10-19T20",10.4,28.7,0,25.0,50.0],["2026-10-19T21",12.7,32.0,0,24.4,51.0],["2026-10-19T22",17.3,39.4,0,24.4,53.0],["2026-10-19T23",13.0,31.6,0,23.9,54.0],["2026-10-20T00",12.8,31.4,0,24.4,54.0],["2026-10-20T01",11.2,29.0,0,24.4,54.0],["2026-10-20T02",9.5,24.4,0,23.9,59.0],["2026-10-20T03",10.3,24.3,0,23.9,62.0],["2026-10-20T04",9.1,21.7,0,23.3,65.0],["2026-10-20T05",8.8,21.1,0,23.9,65.0],["2026-10-20T06",8.8,21.3,0,23.9,65.0],["2026-10-20T07",12.4,26.3,0,23.9,65.0],["2026-10-20T08",13.4,27.6,0,23.9,65.0],["2026-10-20T09",13.6,27.6,0,24.4,65.0],["2026-10-20T10",12.8,24.5,0,23.9,69.0],["2026-10-20T11",12.7,26.5,0,25.6,63.0],["2026-10-20T12",14.4,30.4,0,26.7,58.0],["2026-10-20T13",14.2,30.6,0,27.2,56.0],["2026-10-20T14",11.5,27.7,0,26.7,57.0],["2026-10-20T15",12.1,26.9,0,26.1,60.0],["2026-10-20T16",11.2,25.3,0,25.6,63.0]],"b-003-camino-real":[["2026-10-19T17",8.5,30.8,0,26.7,39.0],["2026-10-19T18",9.1,31.0,0,26.7,40.0],["2026-10-19T19",8.2,29.2,0,26.1,42.0],["2026-10-19T20",7.5,27.3,0,25.6,45.0],["2026-10-19T21",9.4,30.1,0,26.1,44.0],["2026-10-19T22",8.3,27.9,0,26.1,46.0],["2026-10-19T23",8.5,28.5,0,26.1,45.0],["2026-10-20T00",8.3,27.5,0,25.6,47.0],["2026-10-20T01",8.3,26.2,0,25.0,50.0],["2026-10-20T02",8.1,25.2,0,24.4,52.0],["2026-10-20T03",8.7,26.3,0,25.0,51.0],["2026-10-20T04",8.9,26.6,0,25.0,51.0],["2026-10-20T05",9.2,26.8,0,25.6,51.0],["2026-10-20T06",10.9,29.0,0,25.6,52.0],["2026-10-20T07",10.1,28.1,0,25.6,52.0],["2026-10-20T08",10.2,27.9,0,25.6,53.0],["2026-10-20T09",11.9,29.6,0,25.6,54.0],["2026-10-20T10",10.3,27.2,0,26.1,55.0],["2026-10-20T11",8.5,24.2,0,25.6,58.0],["2026-10-20T12",9.9,26.2,0,26.1,58.0],["2026-10-20T13",11.6,27.2,0,26.7,58.0],["2026-10-20T14",10.8,26.3,0,26.7,58.0],["2026-10-20T15",12.4,27.4,0,26.7,58.0],["2026-10-20T16",9.6,24.8,0,26.7,58.0]],"casa-naranjos":[["2026-10-19T17",8.0,25.9,-1,23.9,51.0],["2026-10-19T18",7.8,26.5,0,25.0,48.0],["2026-10-19T19",7.8,26.1,0,25.0,49.0],["2026-10-19T20",8.0,25.4,0,24.4,51.0],["2026-10-19T21",8.1,24.6,0,23.9,53.0],["2026-10-19T22",8.0,24.4,0,23.9,54.0],["2026-10-19T23",7.8,23.7,0,23.9,55.0],["2026-10-20T00",7.4,22.8,0,23.9,56.0],["2026-10-20T01",7.6,22.6,0,23.9,57.0],["2026-10-20T02",7.8,22.8,0,24.4,57.0],["2026-10-20T03",7.6,22.2,0,23.9,58.0],["2026-10-20T04",7.7,20.5,0,23.3,63.0],["2026-10-20T05",7.7,20.0,0,23.3,64.0],["2026-10-20T06",7.4,20.9,0,23.3,61.0],["2026-10-20T07",9.8,24.5,0,23.3,61.0],["2026-10-20T08",8.0,22.1,0,23.9,60.0],["2026-10-20T09",9.6,24.0,0,25.0,61.0],["2026-10-20T10",11.0,25.8,0,25.6,60.0],["2026-10-20T11",9.2,25.5,0,27.8,56.0],["2026-10-20T12",9.4,26.0,0,28.3,56.0],["2026-10-20T13",10.8,25.0,0,26.7,61.0],["2026-10-20T14",11.7,25.5,0,26.1,62.0],["2026-10-20T15",10.8,24.3,0,26.1,62.0],["2026-10-20T16",8.9,22.9,0,26.1,61.0]],"a-004-colinas-de-san-jeronimo":[["2026-10-19T17",8.7,30.1,0,25.0,42.0],["2026-10-19T18",8.9,29.6,0,24.4,44.0],["2026-10-19T19",9.5,29.4,0,24.4,46.0],["2026-10-19T20",8.8,27.8,0,23.9,48.0],["2026-10-19T21",8.7,27.2,0,23.3,49.0],["2026-10-19T22",8.2,26.3,0,23.3,50.0],["2026-10-19T23",8.2,26.1,0,23.9,50.0],["2026-10-20T00",9.1,27.0,0,23.9,51.0],["2026-10-20T01",10.2,27.6,0,23.3,54.0],["2026-10-20T02",9.5,25.5,0,23.3,56.0],["2026-10-20T03",9.8,25.1,0,22.8,57.0],["2026-10-20T04",10.4,24.4,0,22.8,60.0],["2026-10-20T05",11.4,25.2,0,22.8,63.0],["2026-10-20T06",11.1,24.7,0,22.2,64.0],["2026-10-20T07",11.7,26.1,0,22.8,62.0],["2026-10-20T08",10.8,25.4,0,23.3,61.0],["2026-10-20T09",12.2,28.8,0,23.9,58.0],["2026-10-20T10",19.6,38.0,0,24.4,60.0],["2026-10-20T11",15.9,32.7,0,25.6,57.0],["2026-10-20T12",12.6,29.0,0,25.6,59.0],["2026-10-20T13",18.0,35.1,0,25.6,59.0],["2026-10-20T14",17.9,34.7,0,26.1,58.0],["2026-10-20T15",16.6,32.7,0,25.6,58.0],["2026-10-20T16",11.7,26.8,0,25.6,59.0]],"a-003-colonia-del-valle":[["2026-10-19T17",8.3,29.6,0,25.0,42.0],["2026-10-19T18",8.1,28.6,0,23.9,44.0],["2026-10-19T19",8.4,28.2,0,23.3,46.0],["2026-10-19T20",8.2,27.0,0,23.3,48.0],["2026-10-19T21",7.5,25.7,0,23.3,49.0],["2026-10-19T22",7.1,24.7,0,22.8,51.0],["2026-10-19T23",7.4,24.9,0,22.8,51.0],["2026-10-20T00",7.6,24.8,0,23.3,52.0],["2026-10-20T01",8.0,24.1,0,22.8,55.0],["2026-10-20T02",8.3,24.2,0,22.8,55.0],["2026-10-20T03",8.3,24.4,0,23.3,55.0],["2026-10-20T04",7.9,23.4,0,22.8,56.0],["2026-10-20T05",7.8,22.6,0,22.2,58.0],["2026-10-20T06",11.3,26.9,0,22.2,58.0],["2026-10-20T07",10.3,25.9,0,22.2,58.0],["2026-10-20T08",11.0,27.3,0,22.8,56.0],["2026-10-20T09",11.0,28.8,0,24.4,54.0],["2026-10-20T10",15.8,35.6,0,25.6,53.0],["2026-10-20T11",14.7,36.8,0,30.0,44.0],["2026-10-20T12",10.6,27.6,0,26.1,55.0],["2026-10-20T13",12.7,29.3,0,25.6,56.0],["2026-10-20T14",13.5,29.9,0,26.1,56.0],["2026-10-20T15",10.9,26.9,0,25.6,56.0],["2026-10-20T16",9.1,24.7,0,25.0,58.0]],"f-001-dominio-cumbres":[["2026-10-19T17",3.5,7.1,0,null,null],["2026-10-19T18",4.2,8.9,0,null,null],["2026-10-19T19",5.8,12.1,0,null,null],["2026-10-19T20",8.6,17.5,0,null,null],["2026-10-19T21",9.0,18.9,0,null,null],["2026-10-19T22",10.4,21.6,0,null,null],["2026-10-19T23",10.3,21.8,0,null,null],["2026-10-20T00",8.9,18.5,0,null,null],["2026-10-20T01",10.6,23.2,0,null,null],["2026-10-20T02",8.7,17.6,0,null,null],["2026-10-20T03",12.0,25.5,0,null,null],["2026-10-20T04",18.3,39.5,0,null,null],["2026-10-20T05",21.0,41.7,0,null,null],["2026-10-20T06",14.9,28.4,0,null,null],["2026-10-20T07",14.4,28.0,0,null,null],["2026-10-20T08",15.9,32.4,0,null,null],["2026-10-20T09",19.8,41.4,0,null,null],["2026-10-20T10",23.2,48.4,0,null,null],["2026-10-20T11",22.3,45.3,0,null,null],["2026-10-20T12",21.2,44.1,0,null,null],["2026-10-20T13",19.8,40.8,0,null,null],["2026-10-20T14",19.6,39.2,0,null,null],["2026-10-20T15",14.9,28.6,0,null,null],["2026-10-20T16",13.9,26.8,0,null,null]],"egade-sombrillas":[["2026-10-19T17",7.7,27.3,0,23.3,46.0],["2026-10-19T18",7.7,27.1,0,23.3,46.0],["2026-10-19T19",7.6,26.0,0,23.3,48.0],["2026-10-19T20",7.2,25.2,0,22.8,49.0],["2026-10-19T21",7.3,24.4,0,22.8,52.0],["2026-10-19T22",7.2,23.5,0,22.8,54.0],["2026-10-19T23",7.0,23.0,0,22.8,54.0],["2026-10-20T00",7.5,24.3,0,23.3,53.0],["2026-10-20T01",7.7,23.9,0,23.3,54.0],["2026-10-20T02",7.4,21.6,0,22.8,58.0],["2026-10-20T03",7.1,21.2,0,null,null]],"estadio-banorte":[["2026-10-19T17",7.7,28.3,0,24.4,43.0],["2026-10-19T18",8.4,28.8,0,24.4,44.0],["2026-10-19T19",8.3,28.4,0,24.4,45.0],["2026-10-19T20",8.4,27.6,0,23.9,47.0],["2026-10-19T21",8.3,26.2,0,23.3,50.0],["2026-10-19T22",8.0,25.7,0,22.8,51.0],["2026-10-19T23",8.4,25.7,0,23.3,52.0],["2026-10-20T00",8.2,26.0,0,23.9,51.0],["2026-10-20T01",8.0,25.1,0,23.3,52.0],["2026-10-20T02",8.0,25.1,0,23.9,52.0],["2026-10-20T03",7.8,24.4,0,23.3,53.0],["2026-10-20T04",8.2,23.2,0,22.8,58.0],["2026-10-20T05",8.0,22.8,0,22.8,58.0],["2026-10-20T06",7.9,23.6,0,22.8,56.0],["2026-10-20T07",7.7,23.3,0,22.8,56.0],["2026-10-20T08",8.0,24.2,0,23.3,55.0],["2026-10-20T09",9.6,25.5,0,23.9,57.0],["2026-10-20T10",11.6,28.5,0,25.0,56.0],["2026-10-20T11",9.3,26.2,0,25.6,55.0],["2026-10-20T12",9.6,26.5,0,26.1,56.0],["2026-10-20T13",11.2,26.6,0,25.0,59.0],["2026-10-20T14",11.2,26.4,0,25.0,59.0],["2026-10-20T15",9.8,25.1,0,25.6,57.0],["2026-10-20T16",9.6,25.4,0,25.6,57.0]],"c-008-hacienda-el-campanario":[["2026-10-19T17",8.8,29.6,0,26.7,44.0],["2026-10-19T18",8.6,28.2,0,26.1,47.0],["2026-10-19T19",9.8,29.2,0,25.6,49.0],["2026-10-19T20",14.5,35.3,0,24.4,52.0],["2026-10-19T21",14.1,33.6,0,24.4,54.0],["2026-10-19T22",14.8,34.1,0,24.4,55.0],["2026-10-19T23",13.4,33.1,0,24.4,52.0],["2026-10-20T00",10.3,27.9,0,23.9,54.0],["2026-10-20T01",8.6,24.4,0,24.4,57.0],["2026-10-20T02",9.0,23.2,0,23.9,60.0],["2026-10-20T03",9.1,22.7,0,23.3,62.0],["2026-10-20T04",9.5,22.7,0,23.9,64.0],["2026-10-20T05",10.1,23.2,0,23.9,65.0],["2026-10-20T06",10.4,23.6,0,23.9,65.0],["2026-10-20T07",10.5,23.2,0,23.9,66.0],["2026-10-20T08",10.7,23.2,0,24.4,66.0],["2026-10-20T09",9.9,24.1,0,25.0,63.0],["2026-10-20T10",9.9,25.0,0,25.6,61.0],["2026-10-20T11",9.5,25.4,0,26.7,58.0],["2026-10-20T12",9.6,26.6,0,27.8,56.0],["2026-10-20T13",9.5,26.4,0,28.3,55.0],["2026-10-20T14",8.9,26.4,0,28.3,54.0],["2026-10-20T15",8.9,26.5,0,28.3,54.0],["2026-10-20T16",8.8,26.4,0,27.8,54.0]],"d-004-hacienda-las-palmas":[["2026-10-19T17",10.1,31.8,0,26.1,43.0],["2026-10-19T18",10.6,31.9,0,25.6,45.0],["2026-10-19T19",11.4,32.2,0,25.6,47.0],["2026-10-19T20",14.6,36.3,0,25.0,48.0],["2026-10-19T21",16.4,37.4,0,24.4,53.0],["2026-10-19T22",16.6,38.6,0,24.4,52.0],["2026-10-19T23",14.6,36.0,0,25.0,50.0],["2026-10-20T00",11.1,29.8,0,24.4,52.0],["2026-10-20T01",10.1,27.0,0,24.4,56.0],["2026-10-20T02",10.3,24.4,0,23.3,63.0],["2026-10-20T03",9.6,22.2,0,23.3,66.0],["2026-10-20T04",9.9,22.6,0,23.3,66.0],["2026-10-20T05",9.6,22.3,0,23.9,66.0],["2026-10-20T06",11.4,25.3,0,23.9,66.0],["2026-10-20T07",13.8,29.1,0,23.9,65.0],["2026-10-20T08",13.9,29.5,0,23.9,65.0],["2026-10-20T09",13.4,26.8,0,23.9,68.0],["2026-10-20T10",12.5,24.7,0,24.4,69.0],["2026-10-20T11",12.4,27.3,0,25.6,63.0],["2026-10-20T12",12.4,28.3,0,26.1,59.0],["2026-10-20T13",11.7,28.3,0,26.7,57.0],["2026-10-20T14",11.6,27.6,0,26.1,58.0],["2026-10-20T15",10.1,26.1,0,26.1,59.0],["2026-10-20T16",11.8,27.9,0,26.1,60.0]],"hospital-zambrano-hellion":[["2026-10-19T17",6.9,26.4,0,22.8,44.0],["2026-10-19T18",7.1,26.1,0,22.8,45.0],["2026-10-19T19",6.9,25.1,0,22.2,47.0],["2026-10-19T20",6.8,24.6,0,22.2,48.0],["2026-10-19T21",7.2,24.5,0,22.2,49.0],["2026-10-19T22",6.8,23.9,0,22.2,50.0],["2026-10-19T23",6.7,23.7,0,22.2,50.0],["2026-10-20T00",6.8,24.0,0,22.8,50.0],["2026-10-20T01",7.2,23.4,0,22.2,52.0],["2026-10-20T02",6.8,22.8,0,22.2,53.0],["2026-10-20T03",6.9,23.1,0,22.2,52.0],["2026-10-20T04",7.1,22.5,0,22.2,54.0],["2026-10-20T05",6.3,20.1,0,20.6,58.0],["2026-10-20T06",6.4,20.1,0,20.6,58.0],["2026-10-20T07",8.5,22.1,0,21.7,58.0],["2026-10-20T08",9.6,23.7,0,22.2,56.0],["2026-10-20T09",7.9,22.3,0,22.8,57.0],["2026-10-20T10",8.4,22.5,0,23.3,57.0],["2026-10-20T11",8.9,23.4,0,23.9,56.0],["2026-10-20T12",8.0,21.3,0,23.9,60.0],["2026-10-20T13",10.3,22.7,0,23.9,60.0],["2026-10-20T14",9.7,22.7,0,23.9,59.0],["2026-10-20T15",8.3,22.2,0,23.9,58.0],["2026-10-20T16",7.6,21.3,0,23.9,59.0]],"f-007-heroes-lincoln":[["2026-10-19T17",8.2,27.0,0,22.2,49.0],["2026-10-19T18",8.6,26.5,0,21.7,52.0],["2026-10-19T19",7.8,24.5,0,21.1,54.0],["2026-10-19T20",7.0,22.6,0,20.6,56.0],["2026-10-19T21",6.8,22.1,0,20.6,57.0],["2026-10-19T22",6.6,21.4,0,20.6,58.0],["2026-10-19T23",7.1,21.4,0,20.6,60.0],["2026-10-20T00",6.8,20.6,0,20.6,61.0],["2026-10-20T01",7.2,20.5,0,20.6,62.0],["2026-10-20T02",8.6,20.5,0,20.6,66.0],["2026-10-20T03",12.8,24.9,0,20.6,66.0],["2026-10-20T04",13.6,24.7,0,20.6,68.0],["2026-10-20T05",17.1,29.8,0,20.6,69.0],["2026-10-20T06",15.2,26.7,0,20.6,70.0],["2026-10-20T07",16.2,28.4,0,20.6,70.0],["2026-10-20T08",15.6,28.5,0,21.1,70.0],["2026-10-20T09",14.4,28.4,0,22.2,67.0],["2026-10-20T10",14.3,27.3,0,22.8,64.0],["2026-10-20T11",10.5,23.9,0,23.3,62.0],["2026-10-20T12",10.3,24.3,0,23.3,61.0],["2026-10-20T13",14.5,27.5,0,23.3,63.0],["2026-10-20T14",15.4,29.6,0,23.3,62.0],["2026-10-20T15",14.3,28.1,0,22.8,63.0],["2026-10-20T16",14.3,27.0,0,22.2,66.0]],"c-004-jardines-de-la-silla":[["2026-10-19T17",9.8,33.0,0,27.8,39.0],["2026-10-19T18",14.1,37.8,0,26.1,43.0],["2026-10-19T19",10.0,30.3,0,25.0,46.0],["2026-10-19T20",10.0,29.8,0,25.0,48.0],["2026-10-19T21",9.7,29.4,0,25.0,49.0],["2026-10-19T22",10.0,29.4,0,25.6,49.0],["2026-10-19T23",8.7,27.6,0,25.0,50.0],["2026-10-20T00",8.9,27.4,0,25.0,50.0],["2026-10-20T01",9.3,27.6,0,25.0,50.0],["2026-10-20T02",8.9,26.1,0,25.0,53.0],["2026-10-20T03",8.9,25.1,0,24.4,55.0],["2026-10-20T04",8.8,25.0,0,24.4,56.0],["2026-10-20T05",10.0,26.3,0,23.9,58.0],["2026-10-20T06",10.0,26.5,0,23.9,58.0],["2026-10-20T07",10.4,27.3,0,24.4,57.0],["2026-10-20T08",13.2,30.8,0,25.0,58.0],["2026-10-20T09",13.0,27.9,0,25.0,63.0],["2026-10-20T10",10.0,26.4,0,27.2,57.0],["2026-10-20T11",9.5,28.7,0,29.4,51.0],["2026-10-20T12",11.3,29.9,0,28.3,52.0],["2026-10-20T13",13.3,31.4,0,28.3,52.0],["2026-10-20T14",14.9,34.3,0,27.8,55.0],["2026-10-20T15",14.3,32.1,0,27.2,57.0],["2026-10-20T16",11.5,27.4,0,26.7,60.0]],"e-002-joyas-de-anahuac":[["2026-10-19T17",8.9,30.8,0,25.0,42.0],["2026-10-19T18",9.2,30.2,0,25.0,45.0],["2026-10-19T19",10.0,30.5,0,25.0,47.0],["2026-10-19T20",10.9,31.9,0,25.0,46.0],["2026-10-19T21",13.1,35.3,0,25.6,46.0],["2026-10-19T22",15.5,39.0,0,25.6,48.0],["2026-10-19T23",15.9,39.1,0,25.6,49.0],["2026-10-20T00",15.1,37.2,0,25.0,50.0],["2026-10-20T01",10.8,29.4,0,25.0,52.0],["2026-10-20T02",10.3,26.0,0,23.9,59.0],["2026-10-20T03",10.0,23.7,0,23.3,64.0],["2026-10-20T04",9.4,22.2,0,23.3,66.0],["2026-10-20T05",9.2,22.5,0,23.9,65.0],["2026-10-20T06",10.2,24.4,0,23.9,65.0],["2026-10-20T07",14.2,30.8,0,24.4,64.0],["2026-10-20T08",15.0,31.7,0,24.4,64.0],["2026-10-20T09",14.8,31.4,0,24.4,64.0],["2026-10-20T10",12.1,25.4,0,23.9,68.0],["2026-10-20T11",13.1,28.5,0,25.0,63.0],["2026-10-20T12",14.3,31.3,0,26.1,58.0],["2026-10-20T13",13.7,30.7,0,26.7,57.0],["2026-10-20T14",12.0,28.9,0,26.1,57.0],["2026-10-20T15",12.0,28.9,0,26.1,58.0],["2026-10-20T16",13.7,29.8,0,26.1,60.0]],"b-001-la-rioja":[["2026-10-19T17",7.9,29.1,0,25.6,42.0],["2026-10-19T18",7.4,27.2,0,23.9,45.0],["2026-10-19T19",7.6,27.1,0,23.9,46.0],["2026-10-19T20",8.2,27.0,0,23.9,48.0],["2026-10-19T21",8.5,25.9,0,23.3,52.0],["2026-10-19T22",7.6,25.2,0,23.3,51.0],["2026-10-19T23",7.6,25.4,0,23.9,50.0],["2026-10-20T00",8.0,24.2,0,22.8,54.0],["2026-10-20T01",7.2,23.4,0,22.8,54.0],["2026-10-20T02",7.5,24.5,0,23.9,52.0],["2026-10-20T03",7.6,23.5,0,23.3,55.0],["2026-10-20T04",7.9,23.4,0,23.3,56.0],["2026-10-20T05",7.8,22.4,0,22.8,58.0],["2026-10-20T06",7.5,22.1,0,22.2,58.0],["2026-10-20T07",7.8,22.6,0,22.8,58.0],["2026-10-20T08",7.8,22.5,0,22.8,58.0],["2026-10-20T09",8.0,24.1,0,23.9,55.0],["2026-10-20T10",7.7,24.1,0,25.0,55.0],["2026-10-20T11",7.8,25.8,0,27.2,51.0],["2026-10-20T12",7.9,25.2,0,26.7,53.0],["2026-10-20T13",8.2,24.5,0,25.6,56.0],["2026-10-20T14",7.8,22.0,0,25.0,61.0],["2026-10-20T15",8.1,22.8,0,25.6,60.0],["2026-10-20T16",8.4,24.0,0,25.6,58.0]],"f-006-los-cedros":[["2026-10-19T17",8.7,30.4,0,25.0,41.0],["2026-10-19T18",10.8,32.5,0,25.0,43.0],["2026-10-19T19",10.6,31.5,0,24.4,45.0],["2026-10-19T20",18.1,40.6,0,24.4,48.0],["2026-10-19T21",11.8,31.4,0,23.9,49.0],["2026-10-19T22",11.9,31.0,0,23.9,50.0],["2026-10-19T23",8.9,26.2,0,23.9,52.0],["2026-10-20T00",10.6,29.2,0,23.9,51.0],["2026-10-20T01",11.9,30.7,0,23.9,52.0],["2026-10-20T02",10.2,27.4,0,23.9,54.0],["2026-10-20T03",9.1,24.6,0,23.9,58.0],["2026-10-20T04",10.0,24.8,0,23.3,60.0],["2026-10-20T05",10.2,24.1,0,23.3,63.0],["2026-10-20T06",11.1,24.2,0,22.8,65.0],["2026-10-20T07",12.3,26.7,0,23.3,63.0],["2026-10-20T08",12.0,27.8,0,23.9,59.0],["2026-10-20T09",14.6,31.1,0,24.4,59.0],["2026-10-20T10",13.4,29.5,0,25.0,59.0],["2026-10-20T11",14.1,31.4,0,26.1,55.0],["2026-10-20T12",12.1,29.3,0,26.1,56.0],["2026-10-20T13",17.3,34.1,0,25.6,58.0],["2026-10-20T14",14.3,30.4,0,25.6,57.0],["2026-10-20T15",13.5,29.1,0,25.6,58.0],["2026-10-20T16",13.4,28.8,0,25.6,59.0]],"c-003-los-faisanes":[["2026-10-19T17",9.6,31.3,0,26.7,42.0],["2026-10-19T18",10.6,31.9,0,26.1,44.0],["2026-10-19T19",19.1,44.4,0,25.6,46.0],["2026-10-19T20",16.1,38.8,0,25.6,46.0],["2026-10-19T21",12.5,32.4,0,25.0,49.0],["2026-10-19T22",12.2,32.1,0,25.6,49.0],["2026-10-19T23",10.2,29.0,0,25.0,50.0],["2026-10-20T00",12.9,31.4,0,24.4,53.0],["2026-10-20T01",11.4,29.6,0,25.0,52.0],["2026-10-20T02",9.7,26.7,0,25.0,54.0],["2026-10-20T03",8.6,23.3,0,24.4,59.0],["2026-10-20T04",8.9,23.4,0,24.4,60.0],["2026-10-20T05",11.6,26.9,0,24.4,61.0],["2026-10-20T06",10.7,24.8,0,23.9,63.0],["2026-10-20T07",13.1,28.6,0,23.9,63.0],["2026-10-20T08",13.3,28.2,0,23.9,64.0],["2026-10-20T09",11.5,24.9,0,24.4,65.0],["2026-10-20T10",10.3,25.0,0,25.6,62.0],["2026-10-20T11",10.7,26.7,0,26.7,59.0],["2026-10-20T12",14.8,31.2,0,27.2,57.0],["2026-10-20T13",13.0,29.2,0,27.8,55.0],["2026-10-20T14",11.0,27.3,0,27.8,56.0],["2026-10-20T15",10.1,26.3,0,27.2,57.0],["2026-10-20T16",12.4,28.6,0,27.2,58.0]],"f-003-mitras-poniente":[["2026-10-19T17",8.6,29.8,0,25.0,43.0],["2026-10-19T18",8.8,29.2,0,25.0,45.0],["2026-10-19T19",10.4,30.7,0,25.0,47.0],["2026-10-19T20",17.6,40.9,0,24.4,50.0],["2026-10-19T21",20.9,46.0,0,24.4,51.0],["2026-10-19T22",17.2,40.0,0,24.4,51.0],["2026-10-19T23",19.1,43.4,0,24.4,52.0],["2026-10-20T00",15.5,36.9,0,24.4,52.0],["2026-10-20T01",14.2,34.0,0,23.9,54.0],["2026-10-20T02",9.4,25.6,0,23.9,56.0],["2026-10-20T03",12.6,27.9,0,23.9,60.0],["2026-10-20T04",17.9,35.1,0,23.9,62.0],["2026-10-20T05",13.1,26.7,0,23.3,65.0],["2026-10-20T06",15.2,30.1,0,23.9,64.0],["2026-10-20T07",14.5,29.2,0,23.9,65.0],["2026-10-20T08",20.8,38.5,0,23.9,66.0],["2026-10-20T09",21.2,38.9,0,23.9,66.0],["2026-10-20T10",23.5,41.7,0,23.9,68.0],["2026-10-20T11",21.1,37.2,0,23.9,68.0],["2026-10-20T12",20.6,37.8,0,25.0,65.0],["2026-10-20T13",18.1,34.0,0,25.0,62.0],["2026-10-20T14",16.5,32.2,0,25.0,62.0],["2026-10-20T15",14.7,30.0,0,26.1,59.0],["2026-10-20T16",13.2,28.1,0,25.6,62.0]],"c-005-monte-verde":[["2026-10-19T17",15.3,56.9,0,30.0,null],["2026-10-19T18",19.8,63.0,0,29.4,null],["2026-10-19T19",24.6,69.8,0,27.8,null],["2026-10-19T20",17.5,59.3,0,27.2,null],["2026-10-19T21",17.5,59.6,0,27.2,null],["2026-10-19T22",16.5,57.4,0,27.2,null],["2026-10-19T23",12.3,51.7,0,27.2,null],["2026-10-20T00",18.3,60.5,0,27.8,null],["2026-10-20T01",13.0,52.0,0,27.8,null],["2026-10-20T02",11.1,49.0,0,27.2,null],["2026-10-20T03",11.2,49.4,0,26.7,null],["2026-10-20T04",11.7,50.0,0,27.2,null],["2026-10-20T05",14.1,54.3,0,27.2,null],["2026-10-20T06",16.8,58.9,0,27.8,null],["2026-10-20T07",19.1,62.9,0,27.8,null],["2026-10-20T08",18.0,60.6,0,27.2,null],["2026-10-20T09",17.8,59.7,0,27.8,null],["2026-10-20T10",15.2,56.2,0,29.4,null],["2026-10-20T11",15.6,57.2,0,30.6,null],["2026-10-20T12",16.7,57.4,0,30.6,null],["2026-10-20T13",19.4,61.2,0,31.1,null],["2026-10-20T14",15.2,55.4,0,30.6,null],["2026-10-20T15",18.9,63.2,0,30.6,null],["2026-10-20T16",20.0,64.5,0,30.6,null]],"c-002-nueva-cadereyta":[["2026-10-19T17",9.1,30.0,0,27.2,43.0],["2026-10-19T18",11.5,32.1,0,26.7,45.0],["2026-10-19T19",11.4,30.6,0,25.0,49.0],["2026-10-19T20",17.1,38.1,0,24.4,54.0],["2026-10-19T21",21.7,47.1,0,24.4,55.0],["2026-10-19T22",18.1,40.2,0,23.9,55.0],["2026-10-19T23",16.9,36.6,0,24.4,56.0],["2026-10-20T00",12.6,30.7,0,23.9,56.0],["2026-10-20T01",9.2,23.8,0,23.3,60.0],["2026-10-20T02",9.6,22.3,0,22.8,64.0],["2026-10-20T03",11.5,25.2,0,22.8,64.0],["2026-10-20T04",9.5,22.6,0,23.3,63.0],["2026-10-20T05",9.2,22.1,0,23.9,64.0],["2026-10-20T06",14.6,31.5,0,23.9,64.0],["2026-10-20T07",19.6,40.2,0,23.9,66.0],["2026-10-20T08",15.5,33.0,0,23.9,65.0],["2026-10-20T09",13.7,30.8,0,25.6,59.0],["2026-10-20T10",9.9,26.7,0,27.2,55.0],["2026-10-20T11",12.5,30.0,0,28.3,54.0],["2026-10-20T12",10.8,30.4,0,30.0,50.0],["2026-10-20T13",10.0,29.2,0,29.4,51.0],["2026-10-20T14",10.1,29.7,0,30.0,50.0],["2026-10-20T15",12.0,33.0,0,28.9,51.0],["2026-10-20T16",13.2,35.0,0,28.3,52.0]],"d-001-nuevo-mezquital":[["2026-10-19T17",12.6,51.4,0,35.0,null],["2026-10-19T18",12.9,51.8,0,33.9,null],["2026-10-19T19",14.2,53.5,0,33.3,null],["2026-10-19T20",15.8,56.1,0,32.8,null],["2026-10-19T21",17.3,57.8,0,32.8,null],["2026-10-19T22",19.9,61.9,0,33.3,null],["2026-10-19T23",15.3,55.1,0,32.8,null],["2026-10-20T00",16.6,56.5,0,32.8,null],["2026-10-20T01",13.7,52.6,0,32.8,null],["2026-10-20T02",13.7,52.1,0,32.8,null],["2026-10-20T03",12.9,51.4,0,32.8,null],["2026-10-20T04",12.0,49.9,0,32.2,null],["2026-10-20T05",12.3,50.5,0,32.2,null],["2026-10-20T06",13.8,53.0,0,32.2,null],["2026-10-20T07",17.7,58.2,0,32.2,null],["2026-10-20T08",18.4,58.9,0,32.8,null],["2026-10-20T09",15.9,55.1,0,32.8,null],["2026-10-20T10",14.5,54.1,0,33.3,null],["2026-10-20T11",14.7,53.4,0,34.4,null],["2026-10-20T12",16.0,54.2,0,35.0,null],["2026-10-20T13",14.6,53.1,0,35.6,null],["2026-10-20T14",15.3,54.1,0,35.0,null],["2026-10-20T15",13.3,52.5,0,35.0,null],["2026-10-20T16",15.1,53.6,0,35.0,null]],"b-006-obrera":[["2026-10-19T17",8.6,30.4,0,26.1,41.0],["2026-10-19T18",9.1,29.8,0,25.0,44.0],["2026-10-19T19",8.6,28.2,0,24.4,46.0],["2026-10-19T20",8.8,27.7,0,23.9,48.0],["2026-10-19T21",8.5,27.1,0,23.9,49.0],["2026-10-19T22",8.5,26.7,0,23.9,50.0],["2026-10-19T23",10.2,28.5,0,24.4,51.0],["2026-10-20T00",8.8,26.2,0,23.9,52.0],["2026-10-20T01",8.4,24.4,0,23.3,55.0],["2026-10-20T02",8.3,24.4,0,23.3,55.0],["2026-10-20T03",8.1,22.6,0,22.8,59.0],["2026-10-20T04",8.4,22.3,0,22.8,61.0],["2026-10-20T05",9.0,22.7,0,22.8,62.0],["2026-10-20T06",8.8,23.5,0,22.8,59.0],["2026-10-20T07",8.2,23.8,0,23.3,56.0],["2026-10-20T08",8.8,25.2,0,23.9,55.0],["2026-10-20T09",13.5,30.4,0,24.4,58.0],["2026-10-20T10",13.6,30.8,0,25.6,56.0],["2026-10-20T11",10.6,28.3,0,27.2,54.0],["2026-10-20T12",11.3,28.7,0,27.2,55.0],["2026-10-20T13",13.9,30.2,0,26.7,56.0],["2026-10-20T14",14.4,29.5,0,26.1,58.0],["2026-10-20T15",13.9,29.3,0,26.1,58.0],["2026-10-20T16",12.8,28.3,0,26.7,58.0]],"parque-central":[["2026-10-19T17",7.5,27.1,0,24.4,46.0],["2026-10-19T18",7.7,26.7,0,24.4,47.0],["2026-10-19T19",7.8,26.3,0,23.9,49.0],["2026-10-19T20",8.1,26.2,0,23.9,50.0],["2026-10-19T21",7.7,24.6,0,23.3,53.0],["2026-10-19T22",7.5,24.1,0,23.3,54.0],["2026-10-19T23",8.2,24.9,0,23.9,55.0],["2026-10-20T00",7.4,23.9,0,23.9,54.0],["2026-10-20T01",7.6,23.7,0,23.9,55.0],["2026-10-20T02",7.4,23.5,0,24.4,55.0],["2026-10-20T03",7.1,22.7,0,23.9,56.0],["2026-10-20T04",7.3,21.4,0,23.3,60.0],["2026-10-20T05",7.2,20.9,0,22.8,61.0],["2026-10-20T06",6.8,20.7,0,22.8,60.0],["2026-10-20T07",7.0,21.5,0,22.8,59.0],["2026-10-20T08",7.2,21.9,0,23.3,59.0],["2026-10-20T09",8.6,23.7,0,24.4,59.0],["2026-10-20T10",9.8,25.6,0,25.6,58.0],["2026-10-20T11",8.8,25.1,0,27.2,56.0],["2026-10-20T12",8.8,24.7,0,27.2,58.0],["2026-10-20T13",10.1,24.8,0,26.1,61.0],["2026-10-20T14",9.7,24.0,0,26.1,61.0],["2026-10-20T15",8.8,23.2,0,26.1,60.0],["2026-10-20T16",8.2,22.3,0,26.1,61.0]],"b-002-pedregal-la-silla":[["2026-10-19T17",8.2,29.6,0,25.6,41.0],["2026-10-19T18",8.3,29.5,0,25.6,42.0],["2026-10-19T19",9.3,29.6,0,25.6,45.0],["2026-10-19T20",10.3,30.4,0,25.0,46.0],["2026-10-19T21",10.6,29.4,0,24.4,50.0],["2026-10-19T22",9.5,27.7,0,24.4,50.0],["2026-10-19T23",9.5,27.3,0,24.4,51.0],["2026-10-20T00",9.2,27.0,0,24.4,51.0],["2026-10-20T01",7.3,24.7,0,23.9,51.0],["2026-10-20T02",7.7,25.8,0,25.0,49.0],["2026-10-20T03",7.8,25.4,0,24.4,50.0],["2026-10-20T04",8.1,25.1,0,24.4,52.0],["2026-10-20T05",7.8,24.1,0,23.9,54.0],["2026-10-20T06",8.0,24.1,0,23.3,55.0],["2026-10-20T07",8.3,24.4,0,23.3,55.0],["2026-10-20T08",8.9,25.6,0,23.9,55.0],["2026-10-20T09",8.9,25.9,0,24.4,54.0],["2026-10-20T10",8.8,25.9,0,25.0,54.0],["2026-10-20T11",7.8,24.3,0,25.6,55.0],["2026-10-20T12",7.7,25.1,0,26.1,52.0],["2026-10-20T13",8.3,25.4,0,26.1,53.0],["2026-10-20T14",8.8,25.3,0,26.1,55.0],["2026-10-20T15",8.7,23.7,0,26.1,58.0],["2026-10-20T16",9.3,24.9,0,26.1,57.0]],"prepatec-cumbres-canchas":[["2026-10-19T17",5.3,25.8,0,20.7,57.0],["2026-10-19T18",5.0,24.2,0,19.5,61.0],["2026-10-19T19",5.5,24.2,0,18.9,64.0],["2026-10-19T20",5.2,23.0,0,18.4,67.0],["2026-10-19T21",4.0,20.4,0,18.0,70.0],["2026-10-19T22",4.2,21.4,0,18.9,68.0],["2026-10-19T23",4.4,21.5,0,18.8,68.0],["2026-10-20T00",4.8,21.9,0,18.8,70.0],["2026-10-20T01",7.0,25.3,0,18.7,71.0],["2026-10-20T02",7.2,24.9,0,18.5,74.0],["2026-10-20T03",5.9,21.8,0,18.3,78.0],["2026-10-20T04",6.5,22.1,0,18.0,81.0],["2026-10-20T05",7.3,22.9,0,17.2,83.0],["2026-10-20T06",9.2,25.6,0,16.9,85.0],["2026-10-20T07",10.5,27.8,0,17.5,85.0],["2026-10-20T08",9.1,26.5,0,18.3,82.0],["2026-10-20T09",9.3,27.4,0,19.1,79.0],["2026-10-20T10",11.8,31.9,0,20.0,79.0],["2026-10-20T11",11.4,31.8,0,20.8,77.0],["2026-10-20T12",7.8,25.7,0,20.8,78.0],["2026-10-20T13",12.4,33.3,0,20.6,78.0],["2026-10-20T14",11.0,30.8,0,20.5,78.0],["2026-10-20T15",10.8,30.6,0,20.8,78.0],["2026-10-20T16",10.1,29.0,0,20.7,80.0]],"prepatec-cumbres-caseta":[["2026-10-19T17",7.3,26.1,0,22.8,48.0],["2026-10-19T18",6.6,23.1,0,21.1,53.0],["2026-10-19T19",7.6,23.7,0,21.1,55.0],["2026-10-19T20",7.2,22.2,0,20.6,57.0],["2026-10-19T21",6.7,22.0,0,21.7,56.0],["2026-10-19T22",6.8,22.2,0,21.7,56.0],["2026-10-19T23",7.1,23.0,0,22.2,55.0],["2026-10-20T00",7.8,23.0,0,22.2,57.0],["2026-10-20T01",10.2,26.1,0,22.2,57.0],["2026-10-20T02",9.8,24.6,0,22.2,59.0],["2026-10-20T03",8.1,20.1,0,21.7,65.0],["2026-10-20T04",8.6,19.8,0,21.1,67.0],["2026-10-20T05",8.9,18.6,0,20.0,71.0],["2026-10-20T06",10.5,20.5,0,20.6,71.0],["2026-10-20T07",11.8,22.2,0,21.7,70.0],["2026-10-20T08",11.4,23.7,0,22.2,66.0],["2026-10-20T09",12.2,24.8,0,22.2,66.0],["2026-10-20T10",15.5,29.1,0,23.3,65.0],["2026-10-20T11",14.5,28.8,0,24.4,61.0],["2026-10-20T12",10.4,23.1,0,23.3,65.0],["2026-10-20T13",14.8,26.9,0,23.3,66.0],["2026-10-20T14",14.1,26.7,0,23.3,66.0],["2026-10-20T15",13.4,25.8,0,23.9,65.0],["2026-10-20T16",12.1,23.6,0,23.3,67.0]],"prepatec-egl-biblioteca":[["2026-10-19T17",7.5,28.4,0,25.6,42.0],["2026-10-19T18",7.4,27.2,0,24.4,45.0],["2026-10-19T19",7.2,26.4,0,24.4,46.0],["2026-10-19T20",7.2,25.7,0,23.3,48.0],["2026-10-19T21",7.3,24.6,0,23.3,51.0],["2026-10-19T22",7.4,24.2,0,23.3,52.0],["2026-10-19T23",7.3,23.8,0,23.3,53.0],["2026-10-20T00",7.7,23.5,0,23.3,55.0],["2026-10-20T01",7.3,23.4,0,23.3,54.0],["2026-10-20T02",7.3,24.1,0,23.9,52.0],["2026-10-20T03",7.1,23.0,0,23.3,54.0],["2026-10-20T04",7.2,22.4,0,23.3,56.0],["2026-10-20T05",7.1,21.9,0,22.8,57.0],["2026-10-20T06",7.2,21.7,0,22.8,58.0],["2026-10-20T07",7.8,22.6,0,22.8,58.0],["2026-10-20T08",7.8,22.9,0,23.3,57.0],["2026-10-20T09",7.8,23.8,0,24.4,55.0],["2026-10-20T10",8.3,25.0,0,25.6,54.0],["2026-10-20T11",8.5,26.9,0,27.8,50.0],["2026-10-20T12",8.4,27.8,0,28.9,47.0],["2026-10-20T13",7.8,24.7,0,26.7,53.0],["2026-10-20T14",7.8,24.8,0,26.7,53.0],["2026-10-20T15",7.8,22.7,0,25.6,58.0],["2026-10-20T16",7.9,22.9,0,25.6,58.0]],"prepatec-egl-robotica":[["2026-10-19T17",7.3,26.2,0,23.9,47.0],["2026-10-19T18",7.5,25.9,0,23.3,49.0],["2026-10-19T19",7.1,24.7,0,22.8,50.0],["2026-10-19T20",7.2,23.8,0,22.2,53.0],["2026-10-19T21",7.3,22.6,0,21.7,56.0],["2026-10-19T22",7.5,22.6,0,21.7,57.0],["2026-10-19T23",7.5,22.7,0,22.2,57.0],["2026-10-20T00",7.8,22.8,0,22.2,57.0],["2026-10-20T01",7.4,22.8,0,22.8,56.0],["2026-10-20T02",7.1,22.4,0,22.8,56.0],["2026-10-20T03",7.0,21.5,0,22.2,58.0],["2026-10-20T04",7.3,22.3,0,22.8,57.0],["2026-10-20T05",7.2,20.9,0,22.2,60.0],["2026-10-20T06",7.1,20.1,0,21.7,62.0],["2026-10-20T07",8.0,21.8,0,22.2,61.0],["2026-10-20T08",7.7,22.5,0,22.8,58.0],["2026-10-20T09",8.0,23.4,0,23.9,57.0],["2026-10-20T10",8.3,24.4,0,25.0,56.0],["2026-10-20T11",8.5,26.5,0,27.8,51.0],["2026-10-20T12",8.1,26.1,0,27.2,51.0],["2026-10-20T13",7.5,22.9,0,25.0,57.0],["2026-10-20T14",7.5,22.2,0,25.0,59.0],["2026-10-20T15",7.7,20.9,0,24.4,63.0],["2026-10-20T16",7.9,21.3,0,24.4,63.0]],"prepatec-egs-canchas":[["2026-10-19T17",8.2,29.3,0,25.6,42.0],["2026-10-19T18",8.3,28.6,0,25.0,44.0],["2026-10-19T19",8.5,28.4,0,25.0,45.0],["2026-10-19T20",8.7,27.9,0,24.4,47.0],["2026-10-19T21",8.1,26.4,0,24.4,49.0],["2026-10-19T22",8.3,26.8,0,24.4,49.0],["2026-10-19T23",7.8,25.7,0,24.4,50.0],["2026-10-20T00",8.4,26.6,0,24.4,50.0],["2026-10-20T01",8.4,25.2,0,23.9,53.0],["2026-10-20T02",8.4,25.5,0,24.4,52.0],["2026-10-20T03",8.0,24.5,0,23.9,53.0],["2026-10-20T04",8.0,23.5,0,23.9,56.0],["2026-10-20T05",10.1,25.1,0,23.9,59.0],["2026-10-20T06",11.6,27.2,0,23.9,60.0],["2026-10-20T07",12.1,28.9,0,23.9,57.0],["2026-10-20T08",11.8,28.9,0,24.4,55.0],["2026-10-20T09",10.5,27.4,0,24.4,55.0],["2026-10-20T10",16.4,34.5,0,25.6,56.0],["2026-10-20T11",14.0,31.6,0,26.1,54.0],["2026-10-20T12",9.4,25.3,0,26.1,57.0],["2026-10-20T13",12.6,27.7,0,26.1,58.0],["2026-10-20T14",13.2,28.2,0,26.1,57.0],["2026-10-20T15",12.2,27.4,0,26.1,57.0],["2026-10-20T16",9.5,25.2,0,26.1,57.0]],"prepatec-egs-caseta":[["2026-10-19T17",5.6,28.4,0,23.3,50.0],["2026-10-19T18",5.8,27.9,0,22.2,53.0],["2026-10-19T19",5.8,27.1,0,21.5,55.0],["2026-10-19T20",6.0,26.8,0,20.9,58.0],["2026-10-19T21",5.3,25.2,0,20.4,60.0],["2026-10-19T22",5.6,25.5,0,20.6,61.0],["2026-10-19T23",5.1,24.5,0,20.6,62.0],["2026-10-20T00",5.7,25.1,0,20.5,63.0],["2026-10-20T01",5.7,24.9,0,20.7,64.0],["2026-10-20T02",5.7,24.8,0,20.7,65.0],["2026-10-20T03",5.4,24.2,0,20.6,65.0],["2026-10-20T04",5.3,23.4,0,20.2,68.0],["2026-10-20T05",7.1,25.5,0,19.9,72.0],["2026-10-20T06",7.5,25.7,0,19.8,74.0],["2026-10-20T07",7.8,26.8,0,20.0,71.0],["2026-10-20T08",8.2,28.2,0,20.7,68.0],["2026-10-20T09",6.7,26.4,0,21.8,67.0],["2026-10-20T10",12.2,35.5,0,22.5,67.0],["2026-10-20T11",9.5,31.8,0,23.7,65.0],["2026-10-20T12",5.3,24.3,0,23.7,67.0],["2026-10-20T13",9.9,31.7,0,23.4,68.0],["2026-10-20T14",10.7,33.3,0,23.9,67.0],["2026-10-20T15",8.2,29.4,0,23.8,66.0],["2026-10-20T16",5.9,25.1,0,23.4,68.0]],"prepatec-santa-catarina-canchas":[["2026-10-19T17",5.2,26.4,0,21.6,54.0],["2026-10-19T18",5.2,25.6,0,20.8,57.0],["2026-10-19T19",5.1,24.8,0,20.0,60.0],["2026-10-19T20",4.9,23.9,0,19.6,62.0],["2026-10-19T21",4.7,23.2,0,19.4,63.0],["2026-10-19T22",4.6,22.7,0,19.5,65.0],["2026-10-19T23",4.5,22.3,0,19.4,66.0],["2026-10-20T00",4.2,21.2,0,18.6,68.0],["2026-10-20T01",4.7,21.9,0,18.7,69.0],["2026-10-20T02",5.6,22.8,0,18.4,71.0],["2026-10-20T03",6.0,23.1,0,18.0,73.0],["2026-10-20T04",5.8,22.6,0,17.6,74.0],["2026-10-20T05",4.9,20.3,0,16.7,76.0],["2026-10-20T06",5.4,20.9,0,16.6,77.0],["2026-10-20T07",5.6,21.5,0,16.9,76.0],["2026-10-20T08",5.8,23.1,0,18.5,72.0],["2026-10-20T09",7.9,28.1,0,21.3,67.0],["2026-10-20T10",7.5,27.6,0,22.3,67.0],["2026-10-20T11",8.3,29.3,0,23.0,67.0],["2026-10-20T12",7.5,27.1,0,22.2,70.0],["2026-10-20T13",9.6,30.0,0,22.0,72.0],["2026-10-20T14",11.8,33.6,0,22.0,73.0],["2026-10-20T15",9.1,29.3,0,22.1,72.0],["2026-10-20T16",6.3,24.6,0,22.0,72.0]],"prepatec-santa-catarina-estacionamiento":[["2026-10-19T17",7.3,25.9,0,23.3,48.0],["2026-10-19T18",7.2,24.1,0,22.8,52.0],["2026-10-19T19",6.8,22.9,0,21.7,54.0],["2026-10-19T20",6.8,22.4,0,21.7,55.0],["2026-10-19T21",6.8,22.5,0,22.2,55.0],["2026-10-19T22",6.5,21.7,0,22.2,56.0],["2026-10-19T23",6.5,21.3,0,22.2,57.0],["2026-10-20T00",6.3,20.7,0,21.7,58.0],["2026-10-20T01",6.6,20.3,0,21.1,60.0],["2026-10-20T02",7.4,20.2,0,21.1,62.0],["2026-10-20T03",7.7,20.6,0,21.1,62.0],["2026-10-20T04",7.6,19.9,0,21.1,63.0],["2026-10-20T05",7.0,18.9,0,20.6,64.0],["2026-10-20T06",7.2,19.1,0,20.6,64.0],["2026-10-20T07",7.7,20.1,0,20.6,64.0],["2026-10-20T08",8.3,22.3,0,22.8,60.0],["2026-10-20T09",10.8,26.9,0,25.0,56.0],["2026-10-20T10",10.7,26.0,0,25.0,58.0],["2026-10-20T11",11.8,26.8,0,25.0,59.0],["2026-10-20T12",10.4,23.1,0,23.9,63.0],["2026-10-20T13",13.2,26.1,0,23.9,66.0],["2026-10-20T14",15.4,28.2,0,23.9,66.0],["2026-10-20T15",11.4,24.0,0,23.9,64.0],["2026-10-20T16",8.6,20.5,0,23.9,65.0]],"prepatec-valle-alto-canchas":[["2026-10-19T17",4.9,25.9,0,21.9,55.0],["2026-10-19T18",5.0,24.9,0,20.7,59.0],["2026-10-19T19",4.8,23.8,0,19.9,61.0],["2026-10-19T20",5.4,23.6,0,19.2,67.0],["2026-10-19T21",5.0,22.8,0,19.1,67.0],["2026-10-19T22",4.8,22.3,0,19.0,68.0],["2026-10-19T23",4.4,21.7,0,18.9,68.0],["2026-10-20T00",4.2,21.0,0,18.9,70.0],["2026-10-20T01",4.3,21.7,0,19.6,67.0],["2026-10-20T02",4.2,21.9,0,19.9,67.0],["2026-10-20T03",4.5,21.5,0,19.1,70.0],["2026-10-20T04",4.3,20.9,0,18.8,71.0],["2026-10-20T05",4.1,20.2,0,18.4,72.0],["2026-10-20T06",4.0,19.5,0,18.1,74.0],["2026-10-20T07",4.2,19.8,0,18.4,74.0],["2026-10-20T08",4.3,20.6,0,19.3,73.0],["2026-10-20T09",4.2,20.4,0,20.2,73.0],["2026-10-20T10",4.6,21.8,0,21.2,71.0],["2026-10-20T11",4.0,22.1,0,23.5,67.0],["2026-10-20T12",3.8,22.9,0,24.6,63.0],["2026-10-20T13",4.2,22.8,0,23.9,66.0],["2026-10-20T14",4.0,21.9,0,23.4,68.0],["2026-10-20T15",4.2,21.3,0,22.4,72.0],["2026-10-20T16",4.2,20.9,0,22.2,73.0]],"prepatec-valle-alto-explanada":[["2026-10-19T17",6.4,23.2,0,21.7,52.0],["2026-10-19T18",6.7,22.6,0,20.6,55.0],["2026-10-19T19",6.5,21.8,0,20.6,56.0],["2026-10-19T20",6.9,18.9,0,18.9,64.0],["2026-10-19T21",6.5,18.6,0,18.9,64.0],["2026-10-19T22",6.1,19.0,0,19.4,62.0],["2026-10-19T23",6.1,19.0,0,19.4,62.0],["2026-10-20T00",6.0,18.9,0,20.0,62.0],["2026-10-20T01",6.3,19.6,0,20.6,61.0],["2026-10-20T02",6.1,19.0,0,20.0,62.0],["2026-10-20T03",6.3,17.6,0,19.4,66.0],["2026-10-20T04",6.1,17.3,0,19.4,66.0],["2026-10-20T05",6.1,17.6,0,19.4,66.0],["2026-10-20T06",5.8,16.6,0,19.4,67.0],["2026-10-20T07",5.8,16.8,0,18.9,67.0],["2026-10-20T08",5.8,16.5,0,19.4,68.0],["2026-10-20T09",6.3,16.7,0,20.6,70.0],["2026-10-20T10",6.9,18.1,0,21.1,68.0],["2026-10-20T11",7.1,21.5,0,24.4,60.0],["2026-10-20T12",6.9,21.3,0,23.9,60.0],["2026-10-20T13",7.4,21.5,0,24.4,61.0],["2026-10-20T14",7.5,21.4,0,23.9,62.0],["2026-10-20T15",7.0,17.9,0,22.2,69.0],["2026-10-20T16",7.1,16.2,0,21.1,74.0]],"prepatec-valle-alto-nivel-5":[["2026-10-19T17",7.3,27.2,0,23.3,45.0],["2026-10-19T18",7.7,26.9,0,23.3,47.0],["2026-10-19T19",7.5,26.1,0,22.8,48.0],["2026-10-19T20",8.4,24.5,0,21.7,55.0],["2026-10-19T21",7.8,23.8,0,21.7,55.0],["2026-10-19T22",7.4,24.0,0,22.2,53.0],["2026-10-19T23",7.2,23.4,0,22.2,54.0],["2026-10-20T00",7.1,23.9,0,22.2,53.0],["2026-10-20T01",7.1,23.2,0,22.2,54.0],["2026-10-20T02",7.2,23.4,0,22.8,54.0],["2026-10-20T03",7.6,23.1,0,22.2,56.0],["2026-10-20T04",7.3,22.7,0,22.2,56.0],["2026-10-20T05",7.0,22.4,0,22.2,56.0],["2026-10-20T06",7.1,22.2,0,21.7,57.0],["2026-10-20T07",7.0,21.9,0,21.7,58.0],["2026-10-20T08",7.1,22.1,0,22.2,58.0],["2026-10-20T09",7.6,21.5,0,22.2,62.0],["2026-10-20T10",8.3,22.8,0,22.8,61.0],["2026-10-20T11",7.8,22.9,0,24.4,59.0],["2026-10-20T12",7.5,23.3,0,24.4,57.0],["2026-10-20T13",8.0,23.2,0,24.4,59.0],["2026-10-20T14",8.0,22.1,0,23.9,62.0],["2026-10-20T15",8.1,21.7,0,23.9,63.0],["2026-10-20T16",8.2,21.9,0,23.9,63.0]],"d-003-privadas-del-canada":[["2026-10-19T17",4.8,9.7,0,null,null],["2026-10-19T18",7.5,16.6,0,null,null],["2026-10-19T19",6.1,12.6,0,null,null],["2026-10-19T20",9.2,18.5,0,null,null],["2026-10-19T21",11.1,22.7,0,null,null],["2026-10-19T22",9.5,19.7,0,null,null],["2026-10-19T23",10.1,21.0,0,null,null],["2026-10-20T00",7.7,15.1,0,null,null],["2026-10-20T01",5.5,10.7,0,null,null],["2026-10-20T02",4.7,9.1,0,null,null],["2026-10-20T03",5.6,10.7,0,null,null],["2026-10-20T04",7.7,14.8,0,null,null],["2026-10-20T05",9.3,17.7,0,null,null],["2026-10-20T06",8.6,16.7,0,null,null],["2026-10-20T07",10.2,20.5,0,null,null],["2026-10-20T08",9.4,18.7,0,null,null],["2026-10-20T09",9.4,18.5,0,null,null],["2026-10-20T10",14.0,26.9,0,null,null],["2026-10-20T11",10.4,19.9,0,null,null],["2026-10-20T12",9.3,17.8,0,null,null],["2026-10-20T13",7.5,14.8,0,null,null],["2026-10-20T14",7.5,14.5,0,null,null],["2026-10-20T15",4.3,9.0,0,null,null],["2026-10-20T16",5.3,11.1,0,null,null]],"f-002-puerta-de-hierro":[["2026-10-19T17",8.2,27.8,0,23.9,46.0],["2026-10-19T18",8.7,27.2,0,23.3,49.0],["2026-10-19T19",9.0,26.4,0,22.8,52.0],["2026-10-19T20",9.6,26.3,0,22.8,54.0],["2026-10-19T21",12.9,29.9,0,22.2,56.0],["2026-10-19T22",12.7,29.9,0,22.8,55.0],["2026-10-19T23",13.6,31.1,0,22.8,57.0],["2026-10-20T00",12.3,28.7,0,22.2,58.0],["2026-10-20T01",9.2,24.0,0,22.2,59.0],["2026-10-20T02",9.0,21.9,0,22.2,63.0],["2026-10-20T03",8.1,18.6,0,21.7,69.0],["2026-10-20T04",8.5,17.8,0,21.7,72.0],["2026-10-20T05",10.7,20.0,0,21.1,73.0],["2026-10-20T06",12.0,21.3,0,21.7,73.0],["2026-10-20T07",13.9,23.7,0,21.7,74.0],["2026-10-20T08",17.5,28.9,0,22.2,75.0],["2026-10-20T09",21.3,36.6,0,22.8,71.0],["2026-10-20T10",19.0,34.6,0,24.4,66.0],["2026-10-20T11",12.2,26.6,0,25.6,60.0],["2026-10-20T12",12.2,26.2,0,25.0,61.0],["2026-10-20T13",15.3,29.0,0,25.0,61.0],["2026-10-20T14",14.1,27.1,0,24.4,63.0],["2026-10-20T15",13.8,26.9,0,25.0,63.0],["2026-10-20T16",12.1,23.3,0,23.9,68.0]],"b-004-pio-x":[["2026-10-19T17",7.9,28.5,0,25.0,43.0],["2026-10-19T18",8.4,28.0,0,24.4,45.0],["2026-10-19T19",9.3,27.8,0,24.4,47.0],["2026-10-19T20",9.2,26.8,0,23.9,50.0],["2026-10-19T21",7.7,25.3,0,23.3,50.0],["2026-10-19T22",8.5,25.7,0,23.9,51.0],["2026-10-19T23",8.5,25.7,0,23.9,51.0],["2026-10-20T00",8.0,24.5,0,23.9,53.0],["2026-10-20T01",8.0,24.5,0,23.9,53.0],["2026-10-20T02",8.0,24.0,0,23.9,54.0],["2026-10-20T03",8.0,23.6,0,23.9,55.0],["2026-10-20T04",8.1,23.1,0,23.3,57.0],["2026-10-20T05",8.5,22.6,0,23.3,59.0],["2026-10-20T06",8.9,22.7,0,23.3,60.0],["2026-10-20T07",8.5,23.2,0,23.3,58.0],["2026-10-20T08",8.6,24.1,0,23.9,56.0],["2026-10-20T09",9.3,25.1,0,25.0,56.0],["2026-10-20T10",11.4,27.3,0,25.6,56.0],["2026-10-20T11",10.5,27.5,0,26.7,53.0],["2026-10-20T12",9.6,25.4,0,26.7,57.0],["2026-10-20T13",12.6,27.7,0,26.1,58.0],["2026-10-20T14",12.5,27.9,0,26.7,56.0],["2026-10-20T15",10.9,25.9,0,26.7,57.0],["2026-10-20T16",9.0,24.1,0,26.1,58.0]],"b-005-rio-la-silla":[["2026-10-19T17",3.0,5.8,0,null,null],["2026-10-19T18",3.6,7.1,0,null,null],["2026-10-19T19",5.2,10.2,0,null,null],["2026-10-19T20",7.0,13.2,0,null,null],["2026-10-19T21",6.4,12.4,0,null,null],["2026-10-19T22",6.7,13.0,0,null,null],["2026-10-19T23",6.8,13.2,0,null,null],["2026-10-20T00",5.7,11.1,0,null,null],["2026-10-20T01",4.1,7.6,0,null,null],["2026-10-20T02",4.1,7.8,0,null,null],["2026-10-20T03",4.5,8.5,0,null,null],["2026-10-20T04",4.6,8.7,0,null,null],["2026-10-20T05",4.8,9.0,0,null,null],["2026-10-20T06",5.5,10.6,0,null,null],["2026-10-20T07",6.8,12.7,0,null,null],["2026-10-20T08",7.3,13.8,0,null,null],["2026-10-20T09",7.9,15.4,0,null,null],["2026-10-20T10",9.7,18.9,0,null,null],["2026-10-20T11",5.1,10.2,0,null,null],["2026-10-20T12",5.4,11.2,0,null,null],["2026-10-20T13",9.1,17.5,0,null,null],["2026-10-20T14",9.6,18.2,0,null,null],["2026-10-20T15",13.1,23.5,0,null,null],["2026-10-20T16",12.0,22.1,0,null,null]],"san-juan-bosco":[["2026-10-19T17",7.9,27.8,0,23.9,46.0],["2026-10-19T18",8.8,28.3,0,23.9,47.0],["2026-10-19T19",8.6,28.0,0,24.4,47.0],["2026-10-19T20",9.0,28.1,0,24.4,48.0],["2026-10-19T21",8.5,26.3,0,23.3,51.0],["2026-10-19T22",8.3,25.8,0,23.3,52.0],["2026-10-19T23",8.3,25.4,0,23.9,53.0],["2026-10-20T00",8.0,25.4,0,23.9,52.0],["2026-10-20T01",8.3,25.4,0,23.9,53.0],["2026-10-20T02",8.1,25.0,0,24.4,53.0],["2026-10-20T03",7.8,24.7,0,23.9,53.0],["2026-10-20T04",8.3,24.0,0,23.9,57.0],["2026-10-20T05",7.8,23.0,0,23.3,57.0],["2026-10-20T06",7.5,22.4,0,22.8,58.0],["2026-10-20T07",8.3,23.8,0,22.8,58.0],["2026-10-20T08",8.1,24.1,0,23.9,56.0],["2026-10-20T09",9.2,25.7,0,24.4,56.0],["2026-10-20T10",10.6,27.2,0,25.0,57.0],["2026-10-20T11",8.7,24.3,0,25.0,58.0],["2026-10-20T12",9.2,23.1,0,24.4,64.0],["2026-10-20T13",10.4,23.2,0,23.9,66.0],["2026-10-20T14",10.2,23.8,0,24.4,64.0],["2026-10-20T15",9.2,23.5,0,25.0,61.0],["2026-10-20T16",8.8,23.6,0,25.6,60.0]],"a-001-san-pedro-centro":[["2026-10-19T17",8.2,29.0,0,25.6,43.0],["2026-10-19T18",8.5,28.8,0,25.0,44.0],["2026-10-19T19",8.4,27.5,0,23.9,47.0],["2026-10-19T20",8.2,26.5,0,23.3,49.0],["2026-10-19T21",7.5,24.9,0,22.8,51.0],["2026-10-19T22",7.7,25.2,0,23.3,51.0],["2026-10-19T23",7.6,24.9,0,23.3,52.0],["2026-10-20T00",7.1,23.7,0,23.3,53.0],["2026-10-20T01",7.5,24.2,0,23.3,53.0],["2026-10-20T02",8.5,24.1,0,22.8,56.0],["2026-10-20T03",8.7,24.2,0,22.8,56.0],["2026-10-20T04",8.4,22.4,0,22.2,60.0],["2026-10-20T05",8.1,21.9,0,22.2,60.0],["2026-10-20T06",8.9,23.7,0,22.2,59.0],["2026-10-20T07",10.4,25.6,0,22.8,59.0],["2026-10-20T08",11.5,27.9,0,23.3,57.0],["2026-10-20T09",11.7,28.4,0,23.9,56.0],["2026-10-20T10",12.8,29.3,0,24.4,57.0],["2026-10-20T11",14.0,30.2,0,25.0,58.0],["2026-10-20T12",12.4,27.8,0,25.0,59.0],["2026-10-20T13",13.9,29.1,0,25.0,60.0],["2026-10-20T14",15.7,31.0,0,25.0,59.0],["2026-10-20T15",11.8,26.8,0,25.6,58.0],["2026-10-20T16",9.4,24.8,0,25.6,58.0]],"tec-cedes":[["2026-10-19T17",7.3,26.5,0,24.4,47.0],["2026-10-19T18",7.5,26.9,0,25.0,46.0],["2026-10-19T19",7.9,27.7,0,25.6,46.0],["2026-10-19T20",7.7,26.1,0,24.4,49.0],["2026-10-19T21",7.3,23.9,0,23.3,53.0],["2026-10-19T22",7.3,23.5,0,22.8,55.0],["2026-10-19T23",7.2,23.6,0,23.9,54.0],["2026-10-20T00",7.2,24.4,0,24.4,52.0],["2026-10-20T01",7.5,23.6,0,24.4,55.0],["2026-10-20T02",7.8,25.4,0,25.6,51.0],["2026-10-20T03",7.7,24.2,0,25.0,54.0],["2026-10-20T04",7.7,23.1,0,24.4,57.0],["2026-10-20T05",7.4,21.9,0,23.9,59.0],["2026-10-20T06",6.5,19.5,0,21.7,62.0],["2026-10-20T07",6.9,20.1,0,22.8,62.0],["2026-10-20T08",7.1,21.2,0,23.3,60.0],["2026-10-20T09",8.6,24.0,0,25.0,58.0],["2026-10-20T10",11.4,28.7,0,26.7,55.0],["2026-10-20T11",9.3,27.4,0,28.3,52.0],["2026-10-20T12",8.7,23.8,0,26.1,60.0],["2026-10-20T13",9.9,22.1,0,24.4,66.0],["2026-10-20T14",9.8,22.4,0,25.0,65.0],["2026-10-20T15",8.9,22.6,0,25.6,62.0],["2026-10-20T16",8.1,22.3,0,25.6,61.0]],"tec-centrales":[["2026-10-19T17",8.9,30.5,0,24.4,41.0],["2026-10-19T18",8.6,29.4,0,24.4,43.0],["2026-10-19T19",8.2,28.2,0,23.3,45.0],["2026-10-19T20",8.6,27.8,0,23.3,47.0],["2026-10-19T21",9.2,27.5,0,22.8,49.0],["2026-10-19T22",8.5,27.0,0,23.3,49.0],["2026-10-19T23",8.5,26.3,0,23.3,51.0],["2026-10-20T00",7.9,25.1,0,22.8,52.0],["2026-10-20T01",8.6,26.0,0,23.3,52.0],["2026-10-20T02",8.2,25.5,0,23.3,52.0],["2026-10-20T03",7.9,24.7,0,23.3,53.0],["2026-10-20T04",8.2,23.4,0,22.8,57.0],["2026-10-20T05",7.9,22.6,0,22.2,58.0],["2026-10-20T06",7.8,23.7,0,22.8,55.0],["2026-10-20T07",8.0,24.1,0,22.8,55.0],["2026-10-20T08",8.1,24.8,0,23.3,54.0],["2026-10-20T09",9.7,27.0,0,24.4,54.0],["2026-10-20T10",10.9,28.8,0,25.6,53.0],["2026-10-20T11",9.4,28.1,0,27.2,50.0],["2026-10-20T12",9.6,28.0,0,27.2,52.0],["2026-10-20T13",11.0,27.1,0,25.6,57.0],["2026-10-20T14",10.7,26.5,0,25.6,57.0],["2026-10-20T15",9.9,26.1,0,25.6,56.0],["2026-10-20T16",9.0,25.2,0,25.6,56.0]],"tec-jardin-de-las-carreras":[["2026-10-19T17",6.0,28.7,0,22.9,51.0],["2026-10-19T18",5.7,27.2,0,21.7,54.0],["2026-10-19T19",5.4,25.9,0,20.8,57.0],["2026-10-19T20",5.5,25.6,0,20.1,59.0],["2026-10-19T21",6.2,26.2,0,19.9,61.0],["2026-10-19T22",5.4,24.8,0,20.2,62.0],["2026-10-19T23",5.2,24.2,0,20.2,63.0],["2026-10-20T00",4.8,23.1,0,19.9,65.0],["2026-10-20T01",5.1,23.4,0,20.0,66.0],["2026-10-20T02",4.9,23.0,0,20.1,67.0],["2026-10-20T03",4.7,22.7,0,20.1,66.0],["2026-10-20T04",4.9,22.3,0,19.7,70.0],["2026-10-20T05",4.9,21.7,0,19.1,71.0],["2026-10-20T06",4.5,21.5,0,19.2,70.0],["2026-10-20T07",4.6,21.9,0,19.6,69.0],["2026-10-20T08",4.8,22.6,0,20.4,68.0],["2026-10-20T09",5.5,24.1,0,21.5,68.0],["2026-10-20T10",6.0,25.5,0,22.7,67.0],["2026-10-20T11",5.1,24.4,0,24.1,65.0],["2026-10-20T12",4.8,24.3,0,25.1,65.0],["2026-10-20T13",6.3,26.0,0,24.0,68.0],["2026-10-20T14",6.6,26.2,0,23.6,68.0],["2026-10-20T15",6.5,25.9,0,23.3,69.0],["2026-10-20T16",4.8,23.1,0,23.2,69.0]],"tec-rectoria":[["2026-10-19T17",7.8,28.6,0,25.6,42.0],["2026-10-19T18",7.8,27.9,0,25.0,44.0],["2026-10-19T19",7.9,27.6,0,25.0,45.0],["2026-10-19T20",8.1,26.9,0,24.4,47.0],["2026-10-19T21",8.0,26.0,0,23.9,49.0],["2026-10-19T22",7.9,25.5,0,23.9,50.0],["2026-10-19T23",7.7,25.0,0,24.4,51.0],["2026-10-20T00",7.4,24.5,0,23.9,52.0],["2026-10-20T01",8.2,25.3,0,24.4,52.0],["2026-10-20T02",7.7,24.6,0,24.4,52.0],["2026-10-20T03",7.4,23.8,0,23.9,53.0],["2026-10-20T04",7.7,22.7,0,23.9,57.0],["2026-10-20T05",7.5,22.5,0,23.3,57.0],["2026-10-20T06",7.5,23.2,0,23.9,55.0],["2026-10-20T07",8.2,24.4,0,23.9,55.0],["2026-10-20T08",7.6,23.8,0,24.4,54.0],["2026-10-20T09",8.4,24.6,0,25.0,55.0],["2026-10-20T10",9.9,27.1,0,26.7,53.0],["2026-10-20T11",9.1,27.1,0,28.3,51.0],["2026-10-20T12",9.0,27.2,0,28.9,51.0],["2026-10-20T13",10.1,26.0,0,27.2,56.0],["2026-10-20T14",9.7,24.8,0,26.7,57.0],["2026-10-20T15",9.2,24.9,0,26.7,56.0],["2026-10-20T16",8.4,24.2,0,26.7,56.0]],"tecmi-cumbres-jardineras":[["2026-10-19T17",8.7,29.5,0,null,null],["2026-10-19T20",8.5,23.5,-1,21.7,58.0],["2026-10-19T21",8.5,23.9,0,21.7,56.0],["2026-10-19T22",8.4,23.4,0,null,null],["2026-10-20T00",10.9,28.8,0,23.3,51.0],["2026-10-20T01",9.0,23.4,0,22.2,59.0],["2026-10-20T02",9.4,23.9,0,22.2,59.0],["2026-10-20T03",8.0,20.0,0,21.7,65.0],["2026-10-20T04",8.5,19.6,0,21.1,67.0],["2026-10-20T05",9.1,18.4,0,21.1,71.0],["2026-10-20T06",9.9,19.0,0,21.1,72.0],["2026-10-20T07",11.9,20.5,0,21.1,76.0],["2026-10-20T08",13.4,28.4,0,23.3,61.0],["2026-10-20T09",13.6,27.9,0,null,null],["2026-10-20T14",13.8,27.2,-1,23.3,65.0],["2026-10-20T15",13.2,26.2,0,23.9,65.0],["2026-10-20T16",10.6,19.8,0,22.8,72.0]],"tecmi-guadalupe-caseta":[["2026-10-19T17",5.7,28.0,0,23.1,52.0],["2026-10-19T18",5.8,27.3,0,22.0,55.0],["2026-10-19T19",5.2,25.8,0,21.5,57.0],["2026-10-19T20",4.7,24.4,0,21.6,60.0],["2026-10-19T21",4.6,24.1,0,21.6,60.0],["2026-10-19T22",5.0,24.6,0,21.7,61.0],["2026-10-19T23",4.7,24.1,0,21.6,61.0],["2026-10-20T00",4.9,24.2,0,21.5,62.0],["2026-10-20T01",5.3,24.4,0,21.1,64.0],["2026-10-20T02",5.0,23.4,0,20.8,66.0],["2026-10-20T03",4.6,22.1,0,20.4,69.0],["2026-10-20T04",5.1,22.3,0,19.9,71.0],["2026-10-20T05",5.3,22.2,0,19.7,73.0],["2026-10-20T06",5.2,22.3,0,20.0,73.0],["2026-10-20T07",5.8,23.5,0,20.5,72.0],["2026-10-20T08",6.3,24.8,0,21.1,71.0],["2026-10-20T09",7.3,25.8,0,21.2,73.0],["2026-10-20T10",4.1,21.0,0,22.5,72.0],["2026-10-20T11",4.2,21.8,0,23.6,70.0],["2026-10-20T12",5.4,24.2,0,24.0,69.0],["2026-10-20T13",8.1,28.6,0,23.7,69.0],["2026-10-20T14",6.1,24.4,0,23.2,73.0],["2026-10-20T15",7.4,26.0,0,22.7,75.0],["2026-10-20T16",5.8,23.6,0,22.8,74.0]],"tecmi-guadalupe-explanada":[["2026-10-19T17",8.0,25.8,0,23.3,50.0],["2026-10-19T18",7.9,24.6,0,22.8,52.0],["2026-10-19T19",7.8,24.2,0,22.2,53.0],["2026-10-19T20",7.3,22.3,0,22.2,57.0],["2026-10-19T21",7.0,22.0,0,22.2,57.0],["2026-10-19T22",7.5,22.2,0,22.2,58.0],["2026-10-19T23",7.1,21.7,0,22.2,58.0],["2026-10-20T00",7.2,21.3,0,22.2,59.0],["2026-10-20T01",7.7,20.6,0,21.7,62.0],["2026-10-20T02",7.4,19.4,0,21.1,64.0],["2026-10-20T03",7.2,18.1,0,21.1,67.0],["2026-10-20T04",7.5,17.5,0,20.6,69.0],["2026-10-20T05",9.0,18.7,0,20.6,70.0],["2026-10-20T06",9.2,20.5,0,21.7,68.0],["2026-10-20T07",9.9,21.4,0,21.7,69.0],["2026-10-20T08",10.6,22.0,0,21.7,68.0],["2026-10-20T09",12.0,21.4,0,21.1,73.0],["2026-10-20T10",8.2,18.3,0,22.2,71.0],["2026-10-20T11",8.5,19.5,0,23.3,70.0],["2026-10-20T12",9.9,21.3,0,23.3,69.0],["2026-10-20T13",12.2,22.6,0,23.9,68.0],["2026-10-20T14",10.0,20.2,0,23.9,70.0],["2026-10-20T15",11.1,19.5,0,23.3,73.0],["2026-10-20T16",9.8,19.4,0,23.9,72.0]],"tecmi-las-torres-cafeteria":[["2026-10-19T17",7.5,26.9,0,23.9,46.0],["2026-10-19T18",7.5,26.1,0,23.3,48.0],["2026-10-19T19",7.2,24.9,0,22.8,50.0],["2026-10-19T20",7.1,24.0,0,22.2,52.0],["2026-10-19T21",7.0,23.2,0,22.2,54.0],["2026-10-19T22",6.9,22.7,0,22.2,55.0],["2026-10-19T23",6.9,23.1,0,22.8,54.0],["2026-10-20T00",7.0,23.7,0,22.8,53.0],["2026-10-20T01",7.2,23.3,0,23.3,54.0],["2026-10-20T02",7.2,23.0,0,22.8,55.0],["2026-10-20T03",7.4,22.7,0,22.8,56.0],["2026-10-20T04",7.3,21.9,0,22.2,58.0],["2026-10-20T05",7.6,21.8,0,22.2,59.0],["2026-10-20T06",7.8,21.4,0,22.2,61.0],["2026-10-20T07",10.1,24.9,0,21.7,62.0],["2026-10-20T08",9.2,23.7,0,22.8,61.0],["2026-10-20T09",8.6,22.6,0,23.3,61.0],["2026-10-20T10",8.6,22.9,0,24.4,61.0],["2026-10-20T11",9.7,25.3,0,25.6,58.0],["2026-10-20T12",9.1,24.6,0,25.6,58.0],["2026-10-20T13",8.3,23.1,0,25.6,59.0],["2026-10-20T14",8.0,22.3,0,25.0,60.0],["2026-10-20T15",8.0,21.2,0,24.4,63.0],["2026-10-20T16",8.1,21.1,0,24.4,64.0]],"tecmi-san-nicolas-estacionamiento":[["2026-10-19T17",9.1,30.3,0,25.0,45.0],["2026-10-19T18",8.2,27.5,0,24.4,47.0],["2026-10-19T19",8.7,27.3,0,24.4,49.0],["2026-10-19T20",9.2,27.3,0,23.9,50.0],["2026-10-19T21",9.8,27.8,0,23.9,51.0],["2026-10-19T22",12.9,32.9,0,24.4,51.0],["2026-10-19T23",8.9,26.4,0,23.9,52.0],["2026-10-20T00",10.9,29.0,0,23.9,53.0],["2026-10-20T01",9.0,25.1,0,23.3,56.0],["2026-10-20T02",8.3,22.8,0,23.3,59.0],["2026-10-20T03",7.6,19.9,0,22.8,65.0],["2026-10-20T04",7.7,19.9,0,22.8,65.0],["2026-10-20T05",7.6,19.3,0,22.8,66.0],["2026-10-20T06",8.9,21.8,0,23.3,65.0],["2026-10-20T07",8.9,22.4,0,23.9,63.0],["2026-10-20T08",12.4,27.5,0,24.4,63.0],["2026-10-20T09",11.2,25.9,0,23.9,65.0],["2026-10-20T10",8.6,21.0,0,24.4,66.0],["2026-10-20T11",14.9,34.2,0,26.1,60.0],["2026-10-20T12",14.6,32.0,0,26.7,58.0],["2026-10-20T13",13.3,30.4,0,26.7,58.0],["2026-10-20T14",12.3,28.5,0,26.1,59.0],["2026-10-20T15",11.6,26.3,0,25.6,61.0],["2026-10-20T16",12.7,27.7,0,25.6,62.0]],"tecmi-san-nicolas-explanada":[["2026-10-19T17",5.8,28.6,0,23.5,50.0],["2026-10-19T18",6.3,28.3,0,22.4,54.0],["2026-10-19T19",6.5,28.2,0,22.0,56.0],["2026-10-19T20",7.2,28.9,0,21.4,58.0],["2026-10-19T21",7.4,28.9,0,21.2,60.0],["2026-10-19T22",8.6,30.6,0,21.2,61.0],["2026-10-19T23",5.9,25.9,0,21.1,61.0],["2026-10-20T00",8.0,29.1,0,21.1,63.0],["2026-10-20T01",6.6,26.2,0,20.8,66.0],["2026-10-20T02",5.5,23.7,0,20.8,69.0],["2026-10-20T03",4.7,20.9,0,20.4,75.0],["2026-10-20T04",5.1,21.1,0,20.1,77.0],["2026-10-20T05",4.9,20.5,0,19.8,78.0],["2026-10-20T06",6.0,22.5,0,19.9,77.0],["2026-10-20T07",5.7,22.4,0,20.3,76.0],["2026-10-20T08",7.8,26.4,0,21.0,75.0],["2026-10-20T09",6.7,24.4,0,21.4,76.0],["2026-10-20T10",5.7,22.6,0,21.7,77.0],["2026-10-20T11",6.2,25.5,0,23.9,69.0],["2026-10-20T12",9.3,31.2,0,24.5,67.0],["2026-10-20T13",8.3,29.8,0,24.5,66.0],["2026-10-20T14",7.8,28.1,0,23.7,69.0],["2026-10-20T15",8.1,28.1,0,23.2,71.0],["2026-10-20T16",8.4,28.2,0,22.9,73.0]],"f-005-topo-chico":[["2026-10-19T17",9.2,30.6,0,26.7,42.0],["2026-10-19T18",10.0,30.6,0,25.6,44.0],["2026-10-19T19",10.7,30.1,0,25.6,47.0],["2026-10-19T20",11.5,30.7,0,25.6,48.0],["2026-10-19T21",16.0,36.6,0,25.0,49.0],["2026-10-19T22",13.6,33.2,0,25.0,49.0],["2026-10-19T23",13.1,32.6,0,25.0,50.0],["2026-10-20T00",10.7,28.4,0,24.4,53.0],["2026-10-20T01",9.1,23.9,0,23.3,59.0],["2026-10-20T02",11.5,24.7,0,23.9,61.0],["2026-10-20T03",12.5,24.9,0,23.9,62.0],["2026-10-20T04",12.1,24.7,0,23.9,62.0],["2026-10-20T05",13.4,26.8,0,23.9,63.0],["2026-10-20T06",14.7,29.0,0,23.9,64.0],["2026-10-20T07",16.8,32.3,0,23.9,64.0],["2026-10-20T08",16.1,31.1,0,24.4,64.0],["2026-10-20T09",25.6,40.7,0,25.6,62.0],["2026-10-20T10",47.0,67.2,1,26.1,62.0],["2026-10-20T11",24.9,44.6,1,26.7,58.0],["2026-10-20T12",17.8,34.6,1,26.7,58.0],["2026-10-20T13",17.3,33.4,0,26.7,58.0],["2026-10-20T14",16.1,31.4,0,25.6,60.0],["2026-10-20T15",15.7,30.7,0,25.6,62.0],["2026-10-20T16",13.9,28.0,0,26.1,63.0]],"a-002-via-cordillera":[["2026-10-19T17",8.6,30.3,0,25.0,42.0],["2026-10-19T18",8.4,29.0,0,25.0,44.0],["2026-10-19T19",7.7,27.2,0,24.4,46.0],["2026-10-19T20",8.0,27.0,0,23.9,47.0],["2026-10-19T21",7.5,26.2,0,23.9,48.0],["2026-10-19T22",7.3,25.2,0,23.9,50.0],["2026-10-19T23",7.0,22.4,0,21.7,56.0],["2026-10-20T00",6.8,20.5,0,20.6,60.0],["2026-10-20T01",7.6,22.4,0,21.7,58.0],["2026-10-20T02",8.0,22.6,0,21.7,59.0],["2026-10-20T03",6.8,19.2,0,20.0,63.0],["2026-10-20T04",6.7,18.4,0,19.4,65.0],["2026-10-20T05",6.3,17.1,0,18.9,67.0],["2026-10-20T06",6.4,17.2,0,18.9,67.0],["2026-10-20T07",6.3,17.5,0,18.9,66.0],["2026-10-20T08",6.9,19.4,0,20.6,63.0],["2026-10-20T09",11.4,28.8,0,23.9,57.0],["2026-10-20T10",14.0,33.1,0,25.0,56.0],["2026-10-20T11",14.7,34.4,0,26.7,53.0],["2026-10-20T12",13.1,30.8,0,25.6,56.0],["2026-10-20T13",15.1,31.9,0,25.6,59.0],["2026-10-20T14",17.6,34.8,0,25.6,59.0],["2026-10-20T15",12.6,27.7,0,25.0,59.0],["2026-10-20T16",10.1,25.3,0,25.6,59.0]]};
 
 // ===== config.js =====
 
@@ -7043,6 +7094,7 @@ const SENSOR_CARD_OFFSET = [14, 17];
 let sensorCardEl = null;
 let sensorCardKey = null; // qué muestra ahora (para no rehacerla en cada lectura)
 const placeNames = {}; // id del sensor -> "Colonia, Municipio" (Mapbox, una vez por sensor)
+const municipios = {}; // id → municipio (de la misma búsqueda), para la tarjeta del sensor
 
 // true desde "Explorar" hasta pasar a 3D: la tarjeta acompaña el acercamiento
 // al sensor y se queda; un clic en ella pasa a 3D (ver startIntroSequence).
@@ -7114,7 +7166,9 @@ function renderSensorCard(feature, level, index) {
   const label = /^sensor\b/i.test(name) ? name : `Sensor ${name}`;
   el.querySelector(".sc-name").textContent = label;
   el.querySelector(".sc-name").title = label;
-  el.querySelector(".sc-place").textContent = placeNames[id] || "";
+  // tarjeta: nombre del sensor y municipio. El municipio viene de sensorSites.js (polígonos del mapa de Google,
+  // revisado por Luisa el 2026-11-25); la búsqueda de Mapbox solo si un sensor no lo trae.
+  el.querySelector(".sc-place").textContent = SENSOR_SITES.find((s) => s.id === id)?.municipio || municipios[id] || "";
   el.querySelector(".sc-pill").textContent = titleCase(level.label);
   // Datos reales: PM2.5 del último periodo de 12 h (el índice sale de ese PM2.5, ver sensors.js)
   const pm = feature.properties.pm25;
@@ -7144,20 +7198,24 @@ const SENSOR_TABS_LABEL = "Quiero saber más";
 // elegido (por ubicación o con clic). Temperatura, humedad y la gráfica son
 // SIMULADAS mientras no haya datos reales.
 // Estructura de 6 fichas (2026-11-17): las 4 gráficas de PM pasaron a 2 con selector PM2.5 / PM10.
-const SENSOR_TABS = ["Ahora mismo", "Qué hacer", "Contaminantes", "Últimas 12 h", "Último mes", "Clima"];
+const SENSOR_TABS = ["Ahora mismo", "Qué hacer", "Contaminantes", "Últimas 24 h", "Último mes", "Clima"];
 const SENSOR_TAB_BASE = 43; // = la leyenda; «Quiero saber más» (ancho 25vw, style.css)
 const SENSOR_TAB_STEP = 25;
 const SENSOR_TAB_EXPAND = 250;
 // fichas que necesitan más alto al abrirse (índice en SENSOR_TABS → alto): las gráficas llevan el selector
-// PM2.5 / PM10 arriba; «Clima» lleva dos gráficas
-const SENSOR_TAB_EXPAND_BY = { 0: 175, 1: 185, 2: 180, 3: 280, 4: 280, 5: 370 };
+// PM2.5 / PM10 arriba; «Clima» solo lleva el dato actual (5: alto de esa ficha abierta)
+const SENSOR_TAB_EXPAND_BY = { 0: 175, 1: 185, 2: 180, 3: 280, 4: 280, 5: 130 };
 // «Contaminantes» crece en los sensores que también miden gases (nube de contorno)
 const SENSOR_TAB_EXPAND_GASES = 235;
 // «Ahora mismo» en la vista general lleva además la fila de sensores por nivel
 const SENSOR_TAB_EXPAND_GENERAL_0 = 205;
-// contaminante que muestran «Últimas 12 h» y «Último mes» (lo cambia el selector; es el mismo para las dos)
+// contaminante que muestran «Últimas 24 h» y «Último mes» (lo cambia el selector; es el mismo para las dos)
 let tabPmKey = "pm25";
+// Botón de clima en las gráficas de PM (junto al ▶): prende y apaga los tramos de calor / frío / humedad.
+const CLIMA_VISIBLE_INICIO = true; // cómo arranca: true = prendidos
+let climaVisible = CLIMA_VISIBLE_INICIO;
 const SENSOR_TAB_EXPAND_BY_BASE = { ...SENSOR_TAB_EXPAND_BY };
+const QUE_HACER_CLIMA_ALTO = 75; // alto extra de «Qué hacer» cuando lleva el párrafo del clima que agrava
 const SENSOR_TAB_STAGGER_MS = 40; // al salir las opciones, entre una y la siguiente
 let sensorTabsEl = null;
 let sensorTabsOpened = false;
@@ -7215,6 +7273,8 @@ function syncSensorTabs(visible, color) {
 // Alto y visibilidad de cada opción según el estado: cerradas (escondidas
 // detrás de la píldora), apiladas (hover) o apiladas con una abierta.
 function layoutSensorTabs() {
+  // (2026-11-18, Luisa) si la pestaña de la gráfica que va en play se cierra o se cambia por otra, el play se pausa
+  if (playOn && expandedTab !== SENSOR_TABS.indexOf(playFuente === "horas" ? "Últimas 24 h" : "Último mes")) setPlay(false);
   const n = SENSOR_TABS.length;
   const menu = tabsHover || tabsMenuPinned;
   sensorTabsEl.classList.toggle("menu", menu || expandedTab !== null);
@@ -7390,23 +7450,24 @@ function realSeriesFull(id) {
 const MONTHS_ES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
 const dayLabel = (d) => `${d.getDate()} ${MONTHS_ES[d.getMonth()]}`;
 const periodLabel = (d) => `${dayLabel(d)} · ${d.getHours() < 12 ? "00–12 h" : "12–24 h"}`;
-// Últimas 12 horas (src/sensorHourly.js, de datos/datos_sensores_por_hora.xlsx): un lugar por hora, las que
+// Últimas 24 horas (src/sensorHourly.js, de datos/datos_sensores_por_hora.xlsx): un lugar por hora, las que
 // faltan quedan como hueco. tick / label: textos del eje y del hover (la gráfica del mes usa día y medio día).
 function realSeriesHourly(id) {
-  const byHour = new Map((SENSOR_HOURLY[id] || []).map(([h, pm25, pm10, cat]) => [h, { pm25, pm10, level: cat >= 0 ? AQI_LEVELS[cat] : null }]));
+  const byHour = new Map((SENSOR_HOURLY[id] || []).map(([h, pm25, pm10, cat, temp = null, humidity = null]) => [h, { pm25, pm10, temp, humidity, level: cat >= 0 ? AQI_LEVELS[cat] : null }]));
   const out = [], start = new Date(`${SENSOR_HOURLY_META.desde}:00:00`).getTime();
   for (let k = 0; k < SENSOR_HOURLY_META.horas; k++) {
     const d = new Date(start + k * 3600e3), key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}T${String(d.getHours()).padStart(2, "0")}`;
-    const row = byHour.get(key) || { pm25: null, pm10: null, level: null };
-    out.push({ start: d, ...row, tick: `${d.getHours()} h`, label: `${dayLabel(d)} · ${d.getHours()}–${d.getHours() + 1} h` });
+    const row = byHour.get(key) || { pm25: null, pm10: null, temp: null, humidity: null, level: null };
+    out.push({ start: d, ...row, tick: `${d.getHours()} h`, dia: dayLabel(d), label: `${dayLabel(d)} · ${d.getHours()}–${d.getHours() + 1} h` });
   }
   return out;
 }
-// «Últimas 12 h» = las 12 horas que terminan en la hora más reciente del archivo por hora
-// (SENSOR_HOURLY_META.desde → hasta + 1 h), p. ej. «20 oct, 5–17 h».
+// «Últimas 24 h» = las 24 horas que terminan en la hora más reciente del archivo por hora
+// (SENSOR_HOURLY_META.desde → hasta + 1 h), p. ej. «19 oct 17 h – 20 oct 17 h» (o «20 oct, 0–24 h» si es un solo día).
 function ventanaHoras() {
   const a = new Date(`${SENSOR_HOURLY_META.desde}:00:00`), b = new Date(`${SENSOR_HOURLY_META.hasta}:00:00`);
-  return `${dayLabel(a)}, ${a.getHours()}–${b.getHours() + 1} h`;
+  return dayLabel(a) === dayLabel(b) ? `${dayLabel(a)}, ${a.getHours()}–${b.getHours() + 1} h`
+    : `${dayLabel(a)} ${a.getHours()} h – ${dayLabel(b)} ${b.getHours() + 1} h`;
 }
 const LEVEL_FEMININE = (level) => titleCase(level.label).replace(/o$/, "a").replace(/o\b/g, "a");
 
@@ -7421,6 +7482,134 @@ function maxGrafica(points, key) {
   const vals = points.flatMap((p) => [p.value ?? 0, p.rango?.[key]?.[1] ?? 0]);
   return Math.max(20, Math.ceil((Math.max(...vals) + 2) / 10) * 10);
 }
+// ── Clima que agrava (2026-11-24) ──
+// Un pico de PM importa más si coincide con calor (índice de calor de la NOAA), con frío que sube el PM (inversión
+// térmica) o, como aviso de medición, con humedad muy alta. Se marca con un anillo sobre el pico en las gráficas de
+// PM (uno por racha de horas seguidas, en la más alta) y la razón sale al pasar el cursor. En «Qué hacer», un
+// párrafo cuando el clima de la última hora agrava el nivel de hoy. Todo se ajusta aquí:
+const CALOR_NIVELES = [[27, "precaución"], [32, "precaución extrema"], [41, "peligro"], [54, "peligro extremo"]]; // índice de calor NOAA (°C)
+const CLIMA_PM_DESDE = 1;    // nivel de la NOM desde el que un pico cuenta (1 = Aceptable; 0 = cualquiera)
+const FRIO_HASTA = 10;       // °C: con menos → posible inversión térmica
+const FRIO_NIVELES = [10, 5, 0];   // °C: menos de cada uno = un nivel más (el tramo se satura más)
+const HUMEDAD_DESDE = 80;    // %: con más, aviso de que el sensor puede marcar de más
+const HUMEDAD_NIVELES = [80, 90];  // %: más de cada uno = un nivel más
+// Saturación del tramo según el nivel de cada hora (0 = el primero: precaución, menos de 10°, más de 80 %…).
+// Halo: opacidad del color; relleno: cuánto del relleno extra se ve. La etiqueta solo dice el umbral («mayor a 27°»)
+// y al pasar el cursor se ve el valor de cada hora.
+const CLIMA_CAPA_OPACIDAD = { otro: 0.3, humedad: 0.45 }; // opacidad de cada capa del halo (se suman: nivel 4 ≈ 0.76)
+const CLIMA_HALO_CRECE = 2.5;      // px que engrosa el halo por cada nivel (nivel 1 = CLIMA_HALO, nivel 4 = +3 × esto)
+// Tono por nivel (del 1 al 4): más oscuro y quemado conforme sube el peligro
+const CLIMA_TONOS = {
+  calor: ["#FFA04D", "#FF7E22", "#E0560B", "#B23A00"],
+  frio: ["#6f78a8", "#222855", "#141838", "#0b0e24"],
+  humedad: ["#8dbaf5", "#5d9ef0", "#3f7fd6", "#3f7fd6"],
+};
+const CLIMA_SATURACION_RELLENO = [0.6, 0.8, 1, 1];
+const TEMP_AJUSTE = 0;       // °C que se restan a la temperatura del sensor (los PurpleAir suelen medir ~4 °C de más por su propio calor); 0 = tal cual
+// Índice de calor de la NOAA (fórmula simple y, desde 80 °F, regresión de Rothfusz con sus dos ajustes). Entra y sale en °C.
+function indiceCalor(tC, rh) {
+  if (tC == null || rh == null) return null;
+  const T = tC * 9 / 5 + 32;
+  let hi = 0.5 * (T + 61 + (T - 68) * 1.2 + rh * 0.094);
+  if ((hi + T) / 2 >= 80) {
+    hi = -42.379 + 2.04901523 * T + 10.14333127 * rh - 0.22475541 * T * rh - 0.00683783 * T * T - 0.05481717 * rh * rh
+      + 0.00122874 * T * T * rh + 0.00085282 * T * rh * rh - 0.00000199 * T * T * rh * rh;
+    if (rh < 13 && T >= 80 && T <= 112) hi -= ((13 - rh) / 4) * Math.sqrt((17 - Math.abs(T - 95)) / 17);
+    else if (rh > 85 && T >= 80 && T <= 87) hi += ((rh - 85) / 10) * ((87 - T) / 5);
+  }
+  return (hi - 32) * 5 / 9;
+}
+const nivelCalor = (hi) => (hi == null ? null : [...CALOR_NIVELES].reverse().find(([desde]) => hi >= desde)?.[1] ?? null);
+// La razón por la que el clima de ese momento agrava (o pone en duda) el PM, o null. prev = el punto anterior.
+// Qué implica cada nivel (sale en el letrero del cursor, hora por hora, y en «Qué hacer»). Calor: efectos de la NOAA.
+const CLIMA_IMPLICACIONES = {
+  calor: [
+    "Posible fatiga si pasas mucho tiempo afuera o haces ejercicio.",
+    "Posibles calambres, agotamiento o golpe de calor si pasas mucho tiempo afuera o haces ejercicio.",
+    "Calambres y agotamiento por calor probables; golpe de calor posible si sigues afuera o haces ejercicio.",
+    "Golpe de calor muy probable.",
+  ],
+  frio: [
+    "El aire frío suele atrapar la contaminación cerca del suelo (inversión térmica).",
+    "El aire frío irrita nariz y bronquios (cuidado si tienes asma) y atrapa la contaminación cerca del suelo.",
+    "Riesgo de hipotermia si pasas mucho tiempo afuera; el aire helado irrita los bronquios y atrapa la contaminación.",
+  ],
+  humedad: [
+    "Con tanta humedad el sensor puede marcar más partículas de las que hay.",
+    "Humedad casi de niebla: el sensor puede marcar bastante más de lo que hay.",
+  ],
+};
+// Calor + calidad del aire de esa misma hora (índice = nivel de la NOM: 0 Buena … 4 Extremadamente mala).
+// El mensaje = efecto del calor (NOAA) + qué pasa al juntarse con ese aire + un consejo. El consejo sigue al MÁS
+// grave de los dos: el nivel del aire o el del calor (CALOR_GRAVEDAD lleva cada nivel de la NOAA a esa escala).
+const CALOR_CON_AIRE = [
+  "Con calor se respira más, aunque el aire está bueno.",
+  "Con calor se respira más rápido y entran más partículas, aunque el aire sea aceptable.",
+  "Calor y aire malo a la vez: pulmones y corazón trabajan doble.",
+  "Calor y aire muy malo: riesgo alto para todos, sobre todo niñas y niños, personas mayores y con asma o problemas del corazón.",
+  "Calor y aire extremadamente malo: riesgo muy alto para todos.",
+];
+const CALOR_GRAVEDAD = [1, 2, 3, 4]; // precaución, precaución extrema, peligro, peligro extremo → escala del consejo
+const CALOR_CONSEJO = [
+  "Toma agua y busca sombra.",
+  "Si eres sensible, evita el ejercicio afuera y toma agua.",
+  "Evita el ejercicio afuera; si eres sensible, quédate adentro.",
+  "Quédate adentro, en un lugar fresco.",
+  "Evita salir. Quédate en un lugar fresco con las ventanas cerradas.",
+];
+const NIVEL_AIRE = ["aire bueno", "aire aceptable", "aire malo", "aire muy malo", "aire extremadamente malo"];
+const FRIO_NOMBRES = ["frío", "mucho frío", "helada"];
+// nivelPm: nivel de la NOM del PM en esa hora (si no se da, se calcula con p[key])
+function climaQueAgrava(p, prev, key, nivelPm = null) {
+  const t = p.temp == null ? null : p.temp - TEMP_AJUSTE, rh = p.humidity;
+  const hi = indiceCalor(t, rh), nivel = nivelCalor(hi);
+  if (nivel) {
+    const n = CALOR_NIVELES.findLastIndex(([desde]) => hi >= desde);
+    const pm = Math.max(0, nivelPm ?? (p[key] != null ? nomLevelIndex(p[key], key) : 0));
+    return { tipo: "calor", nivel: n, corto: `Sensación de ${Math.round(hi)}° (${nivel}) con ${NIVEL_AIRE[pm]}`, texto: `${CLIMA_IMPLICACIONES.calor[n]} ${CALOR_CON_AIRE[pm]} ${CALOR_CONSEJO[Math.max(pm, CALOR_GRAVEDAD[n])]}` };
+  }
+  if (t != null && t < FRIO_HASTA) {
+    const n = FRIO_NIVELES.findLastIndex((v) => t < v);
+    return { tipo: "frio", nivel: n, corto: `${Math.round(t)}°: ${FRIO_NOMBRES[n]}`, texto: CLIMA_IMPLICACIONES.frio[n] };
+  }
+  if (rh != null && rh > HUMEDAD_DESDE) {
+    const n = HUMEDAD_NIVELES.findLastIndex((v) => rh > v);
+    return { tipo: "humedad", nivel: n, corto: `Humedad de ${Math.round(rh)}%`, texto: CLIMA_IMPLICACIONES.humedad[n] };
+  }
+  return null;
+}
+// Tramos (2026-11-24, versión «h4» que eligió Luisa): las horas seguidas con el mismo clima que agrava forman un
+// tramo, que se dibuja si en alguna de esas horas el PM está desde CLIMA_PM_DESDE. Cada hora toma una sola razón
+// (calor > frío > humedad; el índice de calor ya incluye la humedad). Calor y frío: halo sólido, relleno más fuerte
+// dentro del tramo, guías punteadas al eje con la hora de inicio y fin, puntos en los extremos, ícono y etiqueta.
+// Humedad: lo mismo pero con halo punteado y sin relleno extra (no es más riesgo: el sensor puede marcar de más).
+const CLIMA_COLOR = { calor: "#FF7E22", frio: "#222855", humedad: "#5d9ef0" };
+const CLIMA_HALO = 7;            // grosor del halo del tramo (px de la gráfica)
+function tramosClima(points, key) {
+  if (!climaVisible) return []; // apagados con el botón de clima de la gráfica
+  const tramos = [];
+  let t = null;
+  points.forEach((p, k) => {
+    const nota = p[key] != null && p.level ? climaQueAgrava(p, points[k - 1], key) : null;
+    if (t && (!nota || nota.tipo !== t.tipo)) { tramos.push(t); t = null; }
+    if (!nota) return;
+    if (!t) t = { tipo: nota.tipo, k0: k, k1: k, notas: new Map() };
+    t.k1 = k; t.notas.set(k, nota);
+  });
+  if (t) tramos.push(t);
+  return tramos.filter((r) => [...r.notas.keys()].some((k) => nomLevelIndex(points[k][key], key) >= CLIMA_PM_DESDE))
+    .map((r) => {
+      // solo el umbral que se pasó (no el máximo: se leería como si hubiera estado así todo el tramo)
+      r.texto = r.tipo === "calor" ? `mayor a ${CALOR_NIVELES[0][0]}°` : r.tipo === "frio" ? `menor a ${FRIO_HASTA}°` : `mayor a ${HUMEDAD_DESDE}%`;
+      return r;
+    });
+}
+// Íconos de 9×11 (termómetro, copo, gota), en el color del tramo
+const CLIMA_ICONO = {
+  calor: '<path d="M3 1.5a1.5 1.5 0 0 1 3 0v6.2a3 3 0 1 1-3 0z"/><path d="M4.5 7v3" stroke-width="1.8"/>',
+  frio: '<path d="M4.5 0v11M0 2.8l9 5.4M0 8.2l9-5.4"/>',
+  humedad: '<path d="M4.5 1C4.5 1 1 5.5 1 8a3.5 3.5 0 0 0 7 0C8 5.5 4.5 1 4.5 1z"/>',
+};
 function monthChart(points, id, key = "pm25", sub = "cada 12 h") {
   const { W, H, L, R, T, B } = HISTORY_CHART;
   points = points.map((p) => ({ ...p, value: p[key], level: pointLevel(p, key) }));
@@ -7433,6 +7622,7 @@ function monthChart(points, id, key = "pm25", sub = "cada 12 h") {
   const tramos = [];
   points.forEach((p, k) => { if (!p.level || p.value == null) return; const t = tramos.at(-1); if (t && t.at(-1) === k - 1) t.push(k); else tramos.push([k]); });
   let d = "", area = "";
+  const yMedia = new Map(); // y de la curva entre el punto k y el k+1 (Bézier en t = 0.5): extremos de los tramos de clima
   for (const t of tramos) {
     const Q = t.map((k) => P[k]);
     let seg = `M${Q[0][0].toFixed(1)},${Q[0][1].toFixed(1)}`;
@@ -7450,6 +7640,7 @@ function monthChart(points, id, key = "pm25", sub = "cada 12 h") {
       const [p1, p2] = [Q[k], Q[k + 1]], h = (p2[0] - p1[0]) / 3;
       const c1 = [p1[0] + h, p1[1] + m[k] * h], c2 = [p2[0] - h, p2[1] - m[k + 1] * h];
       seg += `C${c1[0].toFixed(1)},${c1[1].toFixed(1)} ${c2[0].toFixed(1)},${c2[1].toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+      yMedia.set(t[k], (p1[1] + 3 * c1[1] + 3 * c2[1] + p2[1]) / 8);
     }
     d += seg;
     area += `${seg}L${Q.at(-1)[0]},${B}L${Q[0][0]},${B}Z`;
@@ -7480,7 +7671,53 @@ function monthChart(points, id, key = "pm25", sub = "cada 12 h") {
   for (let v = 0; v <= max; v += step) grid += `${v ? `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="hc-grid"/>` : ""}${near(v) ? "" : `<text x="${L - 9}" y="${y(v) + 3}" text-anchor="end" class="hc-axis">${v}</text>`}`;
   for (const [v, level] of limits) grid += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" class="hc-grid" style="stroke:${level.color};stroke-opacity:.5"/><text x="${L - 9}" y="${y(v) + 3}" text-anchor="end" class="hc-axis">${v}</text><circle cx="${L - 4.5}" cy="${y(v)}" r="2.2" fill="${level.color}"/>`;
   const marks = [0, Math.round((points.length - 1) / 3), Math.round((2 * (points.length - 1)) / 3), points.length - 1];
-  const ticks = marks.map((k, j) => `<text x="${x(k)}" y="${B + 14}" text-anchor="${j === 0 ? "start" : j === marks.length - 1 ? "end" : "middle"}" class="hc-axis">${points[k].tick ?? dayLabel(points[k].start)}</text>`).join("");
+  // En «Últimas 24 h» (puntos con tick y dia) la marca lleva el día cuando cambia respecto a la anterior: «19 oct · 17 h».
+  const tickText = (k, j) => points[k].tick == null ? dayLabel(points[k].start)
+    : points[k].dia && (j === 0 || points[marks[j - 1]].dia !== points[k].dia) ? `${points[k].dia} · ${points[k].tick}` : points[k].tick;
+  // ── Tramos de clima que agrava (ver tramosClima) ──
+  const paso = (W - L - R) / Math.max(1, points.length - 1);
+  const climaTramos = tramosClima(points, key).map((r, n) => {
+    const a0 = Math.max(L, x(r.k0) - paso / 2), a1 = Math.min(W - R, x(r.k1) + paso / 2);
+    const y0 = yMedia.get(r.k0 - 1) ?? P[r.k0][1], y1 = yMedia.get(r.k1) ?? P[r.k1][1];
+    const horas = points[r.k0].tick != null ? [`${points[r.k0].start.getHours()} h`, `${(points[r.k1].start.getHours() + 1) % 24} h`] : null;
+    return { ...r, a0, a1, y0, y1, horas, cid: `${gid}-clima${n}` };
+  });
+  const xsHoras = climaTramos.filter((r) => r.horas).flatMap((r) => [r.a0, r.a1]);
+  const ticks = marks.map((k, j) => xsHoras.some((xh) => Math.abs(xh - x(k)) < 22) ? "" : `<text x="${x(k)}" y="${B + 14}" text-anchor="${j === 0 ? "start" : j === marks.length - 1 ? "end" : "middle"}" class="hc-axis">${tickText(k, j)}</text>`).join("");
+  // Saturación por hora: un degradado horizontal con una parada en cada hora del tramo (opacidad según su nivel)
+  const nv = (nota, arr) => arr[Math.min(nota.nivel ?? 0, arr.length - 1)];
+  const paradas = (r, op) => [...r.notas].map(([k, nota]) => `<stop offset="${Math.min(1, Math.max(0, (x(k) - r.a0) / (r.a1 - r.a0))).toFixed(4)}" stop-color="${op.color ?? nv(nota, CLIMA_TONOS[r.tipo])}" stop-opacity="${nv(nota, op.valores)}"/>`).join("");
+  const climaDefs = climaTramos.map((r) => `<clipPath id="${r.cid}"><rect x="${r.a0.toFixed(1)}" y="0" width="${(r.a1 - r.a0).toFixed(1)}" height="${H}"/></clipPath>` +
+    `<linearGradient id="${r.cid}-rg" gradientUnits="userSpaceOnUse" x1="${r.a0.toFixed(1)}" x2="${r.a1.toFixed(1)}" y1="0" y2="0">${paradas(r, { color: "#fff", valores: CLIMA_SATURACION_RELLENO })}</linearGradient>` +
+    `<mask id="${r.cid}-rm" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect x="${r.a0.toFixed(1)}" y="0" width="${(r.a1 - r.a0).toFixed(1)}" height="${H}" fill="url(#${r.cid}-rg)"/></mask>`).join("");
+  // relleno más fuerte dentro del tramo (calor y frío): el mismo relleno, otra vez, recortado al tramo
+  const climaRelleno = climaTramos.filter((r) => r.tipo !== "humedad").map((r) => `<g mask="url(#${r.cid}-rm)"><path d="${area}" fill="url(#${gid}-band)" mask="url(#${gid}-mask)" clip-path="url(#${r.cid})"/></g>`).join("");
+  // Halo en capas: una capa por nivel, cada una más gruesa (CLIMA_HALO_CRECE) y visible solo en las horas que llegan
+  // a ese nivel (degradado horizontal, así el grosor y la intensidad crecen suave de una hora a otra). Las capas se
+  // suman: nivel 1 = una capa, nivel 4 = cuatro. Tono por nivel: CLIMA_TONOS.
+  const climaHalo = climaTramos.map((r) => {
+    const max = Math.max(...[...r.notas.values()].map((n) => n.nivel ?? 0));
+    return Array.from({ length: max + 1 }, (_, capa) => {
+      const gid2 = `${r.cid}-c${capa}`;
+      const stops = [...r.notas].map(([k, nota]) => `<stop offset="${Math.min(1, Math.max(0, (x(k) - r.a0) / (r.a1 - r.a0))).toFixed(4)}" stop-color="${nv(nota, CLIMA_TONOS[r.tipo])}" stop-opacity="${(nota.nivel ?? 0) >= capa ? CLIMA_CAPA_OPACIDAD[r.tipo === "humedad" ? "humedad" : "otro"] : 0}"/>`).join("");
+      const ancho = (r.tipo === "humedad" ? CLIMA_HALO - 2 : CLIMA_HALO) + capa * CLIMA_HALO_CRECE;
+      return `<linearGradient id="${gid2}" gradientUnits="userSpaceOnUse" x1="${r.a0.toFixed(1)}" x2="${r.a1.toFixed(1)}" y1="0" y2="0">${stops}</linearGradient>` +
+        `<path d="${d}" class="hc-clima-halo hc-clima-${r.tipo}" stroke="url(#${gid2})" stroke-width="${ancho}" clip-path="url(#${r.cid})"/>`;
+    }).reverse().join(""); // la más gruesa abajo
+  }).join("");
+  const climaMarcas = climaTramos.map((r) => {
+    const c = CLIMA_COLOR[r.tipo], m = (r.a0 + r.a1) / 2;
+    const ly = Math.max(T + 2, Math.min(r.y0, r.y1, ...Array.from({ length: r.k1 - r.k0 + 1 }, (_, i) => P[r.k0 + i][1])) - 9);
+    const lx = Math.min(m - 3, W - R - 20); // ícono + «!»
+    return [[r.a0, r.y0, r.horas?.[0]], [r.a1, r.y1, r.horas?.[1]]].map(([X, Y, h]) =>
+      `<line x1="${X.toFixed(1)}" x2="${X.toFixed(1)}" y1="${(Y + 3).toFixed(1)}" y2="${B}" class="hc-clima-guia" stroke="${c}"/>` +
+      `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="2.4" class="hc-clima-punto" stroke="${c}"/>` +
+      (h ? `<text x="${X.toFixed(1)}" y="${B + 14}" text-anchor="middle" class="hc-clima-hora" fill="${c}">${h}</text>` : "")).join("") +
+      `<g transform="translate(${lx.toFixed(1)},${(ly - 7.5).toFixed(1)}) scale(.75)" class="hc-clima-icono" stroke="${c}">${CLIMA_ICONO[r.tipo]}</g>` +
+      // advertencia: «!» en un círculo del color del tramo (la explicación sale al pasar el cursor)
+      `<g class="hc-clima-alerta"><title>${r.texto}</title><circle cx="${(lx + 13).toFixed(1)}" cy="${(ly - 3).toFixed(1)}" r="4.6" fill="${c}"/>` +
+      `<text x="${(lx + 13).toFixed(1)}" y="${(ly - 0.4).toFixed(1)}" text-anchor="middle" class="hc-clima-excl">!</text></g>`;
+  }).join("");
   // misma estética que la gráfica de 12 h: la línea y el relleno toman el color de la categoría
   // de cada periodo (a lo largo, de izquierda a derecha) y el relleno se desvanece hacia abajo
   const color = (p) => (p.level || NO_DATA_LEVEL).color;   // periodo sin categoría en el archivo: gris (antes salía verde por error)
@@ -7513,7 +7750,7 @@ function monthChart(points, id, key = "pm25", sub = "cada 12 h") {
     <defs>
       <linearGradient id="${gid}-line" gradientUnits="userSpaceOnUse" x1="${L}" y1="0" x2="${W - R}" y2="0">${xStops}</linearGradient>
       <linearGradient id="${gid}-lineband" gradientUnits="userSpaceOnUse" x1="0" y1="${B}" x2="0" y2="${T}">${lineStops}</linearGradient>
-      <linearGradient id="${gid}-band" gradientUnits="userSpaceOnUse" x1="0" y1="${B}" x2="0" y2="${T}">${bandStops}</linearGradient>
+      <linearGradient id="${gid}-band" gradientUnits="userSpaceOnUse" x1="0" y1="${B}" x2="0" y2="${T}">${bandStops}</linearGradient>${climaDefs}
       <linearGradient id="${gid}-fade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
       <mask id="${gid}-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect x="${L}" y="${T}" width="${W - L - R}" height="${B - T}" fill="url(#${gid}-fade)"/></mask>
     </defs>
@@ -7523,7 +7760,9 @@ function monthChart(points, id, key = "pm25", sub = "cada 12 h") {
     ${huecos}
     ${rangoPath}
     <path d="${area}" fill="url(#${gid}-band)" mask="url(#${gid}-mask)"/>
+    ${climaRelleno}${climaHalo}
     <path d="${d}" fill="none" stroke="url(#${gid}-lineband)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    ${climaMarcas}
     <line class="hc-cross" x1="0" x2="0" y1="${T - 6}" y2="${B}"/>
     <circle class="hc-dot" r="3.5" cx="-10" cy="-10"/>
     ${ticks}${legend}
@@ -7538,6 +7777,7 @@ function wireMonthChart(body, points, key = "pm25", fuente = null) {
   const tip = body.querySelector(".hc-tip"), cross = svg.querySelector(".hc-cross"), dot = svg.querySelector(".hc-dot");
   const max = maxGrafica(points, key);
   const etiqueta = (p) => `${p.n ? `promedio de ${p.n[key]} sensores · ` : ""}${p.label ?? periodLabel(p.start)}`; // general: cuántos sensores
+  const notas = new Map(tramosClima(points, key).flatMap((r) => [...r.notas])); // clima que agrava: la razón, en cada hora del tramo
   svg.addEventListener("pointermove", (event) => {
     const rect = svg.getBoundingClientRect();
     const vx = ((event.clientX - rect.left) / rect.width) * W;
@@ -7547,7 +7787,8 @@ function wireMonthChart(body, points, key = "pm25", fuente = null) {
     const py = sinDato ? B : B - ((p.value ?? 0) / max) * (B - T);
     cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.style.opacity = 1;
     dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.setAttribute("fill", p.level?.color || "#8a8fab"); dot.style.opacity = 1;
-    tip.innerHTML = sinDato ? `<strong>sin datos</strong> <span>${p.label ?? periodLabel(p.start)}</span>` : `<strong>${p.value}</strong> <span>${etiqueta(p)}</span>`;
+    const nota = notas.get(k);
+    tip.innerHTML = sinDato ? `<strong>sin datos</strong> <span>${p.label ?? periodLabel(p.start)}</span>` : `<strong>${p.value}</strong> <span>${etiqueta(p)}</span>${nota ? `<div class="hc-tip-clima"><b>${nota.corto}</b>${nota.texto}</div>` : ""}`;
     dot.style.visibility = sinDato ? "hidden" : "visible";
     tip.hidden = false;
     if (fuente) verTiempo(fuente, k, key); // el mapa muestra ese momento (ver «Línea de tiempo desde las gráficas»)
@@ -7695,7 +7936,7 @@ function renderSensorTabBody() {
     last = realSeries(id).at(-1); // último periodo completo de 12 h con datos
     serieMes = realSeriesFull(id); serieHoras = realSeriesHourly(id);
   }
-  const key = `${expandedTab}|${id}|${aqi}|${placeNames[id] || ""}|${tabPmKey}`;
+  const key = `${expandedTab}|${id}|${aqi}|${placeNames[id] || ""}|${tabPmKey}|${climaVisible}`;
   if (key === tabBodyKey) return;
   tabBodyKey = key;
   soltarTiempo(); // la gráfica que se estaba recorriendo se va: el mapa vuelve al último dato
@@ -7716,11 +7957,17 @@ function renderSensorTabBody() {
       ${general ? `<div class="st-cuenta" aria-label="Sensores por nivel">${resumenGeneral().cuenta.map((n, i) => `<span title="${titleCase(AQI_LEVELS[i].label)}"><i style="background:${AQI_LEVELS[i].color}"></i>${n}</span>`).join("")}</div>` : ""}
       <p class="st-note">${general ? "Promedio de 12 h de los sensores con datos. Elige un sensor en el mapa para ver el suyo." : "Promedio de 12 h. Rangos de la NOM-172-SEMARNAT-2023."}</p>`;
   } else if (expandedTab === 1) {
-    // ── Qué hacer: las recomendaciones del nivel + aviso para grupos sensibles
+    // ── Qué hacer: las recomendaciones del nivel + aviso para grupos sensibles + clima que agrava (última hora)
+    const kh = serieHoras.findLastIndex((p) => p.temp != null);
+    const climaHoy = index >= CLIMA_PM_DESDE && kh >= 0 ? climaQueAgrava(serieHoras[kh], null, "pm25", index) : null;
+    const consejo = { calor: "", /* el de calor ya va en CALOR_CON_AIRE */ frio: "Si eres sensible, evita salir temprano y cubre nariz y boca.", humedad: "Revisa el sensor más cercano antes de cambiar tus planes." };
+    const alto1 = SENSOR_TAB_EXPAND_BY_BASE[1] + (climaHoy ? QUE_HACER_CLIMA_ALTO : 0);
+    if (SENSOR_TAB_EXPAND_BY[1] !== alto1) { SENSOR_TAB_EXPAND_BY[1] = alto1; requestAnimationFrame(layoutSensorTabs); }
     body.innerHTML = index < 0 ? sinDatos : `<p class="st-label">Con el aire ${titleCase(level.label).toLowerCase()}${general ? " en promedio" : ""} ${pill}</p>
       <ul class="st-recs">${(LANDING_LEVELS[index] || { recs: [] }).recs.map(([icon, title, detail]) =>
         `<li><span class="st-icon">${LANDING_ICONS[icon]}</span><span><strong>${title}</strong><br>${detail}</span></li>`).join("")}</ul>
-      <p class="st-sensibles"><strong>Si eres sensible</strong> ${SENSIBLES_TEXTO[index]}</p>`;
+      <p class="st-sensibles"><strong>Si eres sensible</strong> ${SENSIBLES_TEXTO[index]}</p>
+      ${climaHoy ? `<p class="st-clima"><strong>${climaHoy.corto}</strong> ${climaHoy.texto} ${consejo[climaHoy.tipo]}</p>` : ""}`;
   } else if (expandedTab === 2) {
     // ── Contaminantes: qué es cada uno y su valor de hoy (general: el promedio); los gases, sin datos todavía
     const nGases = SENSOR_SITES.filter((s) => cloudStyleFor(s.id) === "outline").length;
@@ -7731,16 +7978,13 @@ function renderSensorTabBody() {
       <dl class="st-pols">${["pm25", "pm10"].map((k) => `<dt><span class="st-chip">${POLLUTANT_NAME[k]}</span>${last?.[k] != null ? `<span class="st-pol-val">${general ? "promedio " : ""}<b>${last[k]}</b> µg/m³</span>` : ""}</dt><dd>${POLLUTANT_INFO[k]}</dd>`).join("")}
       ${gases ? `<dt><span class="st-chip">O<sub>3</sub></span><span class="st-chip">NO<sub>2</sub></span><span class="st-chip">CO</span></dt><dd>${general ? `Ozono, dióxido de nitrógeno y monóxido de carbono. ${nGases} sensores también los miden, pero todavía no tenemos esos datos.` : POLLUTANT_INFO.gases}</dd>` : ""}</dl>`;
   } else if (expandedTab === 5) {
-    // ── Clima: temperatura y humedad del último dato + sus gráficas del mes (general: promedios)
+    // ── Clima: temperatura y humedad del último dato (general: promedios)
     const ultimo = [...serieMes].reverse().find((p) => p.temp != null);
     if (!ultimo) { body.innerHTML = sinDatos; return; }
     body.innerHTML = `<p class="st-label">${general ? "Promedio de los sensores" : "En la zona del sensor"} · ${periodLabel(ultimo.start)}</p>
       <div class="st-weather"><div><span class="st-num">${Math.round(ultimo.temp)}°</span>Temperatura</div><div><span class="st-num">${ultimo.humidity != null ? `${Math.round(ultimo.humidity)}%` : "—"}</span>Humedad</div></div>`;
-    if (serieMes.filter((p) => p.temp != null).length > 1) {
-      body.innerHTML += seriesChart(serieMes, { key: "temp", unit: "°C", color: "#222855", title: "Temperatura", id }) +
-        seriesChart(serieMes, { key: "humidity", unit: "%", color: "#5d9ef0", title: "Humedad", id, min0: true });
-      wireSeriesCharts(body, serieMes);
-    }
+    // 2026-11-24: sin las gráficas del mes (Luisa pidió solo el dato actual). seriesChart / wireSeriesCharts
+    // quedan por si vuelven, p. ej. para relacionar calor o humedad con la calidad del aire (pendiente).
   } else {
     // ── 3: últimas 12 h (por hora) · 4: último mes (cada 12 h); selector PM2.5 / PM10 arriba.
     // General: la línea es el promedio y la franja tenue, el rango de los sensores (percentiles 10–90).
@@ -7750,10 +7994,10 @@ function renderSensorTabBody() {
     const fuenteG = hourly ? "horas" : "mes", conPlay = true, suena = playOn && playFuente === fuenteG; // cada gráfica con su play
     const selector = `<div class="st-fila"><div class="st-switch" role="group" aria-label="Contaminante">${["pm25", "pm10"].map((k) =>
       `<button type="button" data-pm="${k}" aria-pressed="${k === pmKey}">${POLLUTANT_NAME[k]}</button>`).join("")}</div>${conPlay
-      ? `<button type="button" class="st-play${suena ? " playing" : ""}" data-fuente="${fuenteG}" aria-label="${suena ? "Pausar" : "Reproducir"}"><svg class="st-i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6L12.6 8Z" fill="currentColor"/></svg><svg class="st-i-pausa" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 3h2.4v10H4.5zM9.1 3h2.4v10H9.1z" fill="currentColor"/></svg></button>` : ""}</div>`;
+      ? `<button type="button" class="st-play${suena ? " playing" : ""}" data-fuente="${fuenteG}" aria-label="${suena ? "Pausar" : "Reproducir"}"><svg class="st-i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6L12.6 8Z" fill="currentColor"/></svg><svg class="st-i-pausa" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 3h2.4v10H4.5zM9.1 3h2.4v10H9.1z" fill="currentColor"/></svg></button>` : ""}<button type="button" class="st-clima-btn" aria-pressed="${climaVisible}" aria-label="${climaVisible ? "Ocultar" : "Mostrar"} calor, frío y humedad" title="${climaVisible ? "Ocultar" : "Mostrar"} calor, frío y humedad"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 3a1.5 1.5 0 0 1 3 0v5.6a2.8 2.8 0 1 1-3 0z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 7.5v3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>`;
     body.innerHTML = selector + (points.filter((p) => pointLevel(p, pmKey)).length < 2
       ? `<p class="st-note">${general ? "No hay" : "Este sensor no tiene"} datos de ${POLLUTANT_NAME[pmKey]} del ${dayLabel(new Date(`${meta.desde}:00:00`))}${hourly ? ` (${new Date(`${meta.desde}:00:00`).getHours()} h)` : ""} al ${dayLabel(new Date(`${meta.hasta}:00:00`))}${hourly ? ` (${new Date(`${meta.hasta}:00:00`).getHours() + 1} h)` : ""}.</p>`
-      : monthChart(points, id, pmKey, `${hourly ? `por hora · ${ventanaHoras()}` : "cada 12 h"}${general ? " · promedio" : ""}`));
+      : monthChart(points, id, pmKey, `${hourly ? ventanaHoras() : "cada 12 h"}${general ? " · promedio" : ""}`));
     wireMonthChart(body, points, pmKey, hourly ? "horas" : "mes");
     requestAnimationFrame(marcarGraficas); // en Campo, la gráfica recién abierta ya marca dónde va
     body.querySelectorAll(".st-switch button").forEach((b) => b.addEventListener("click", (event) => {
@@ -7763,6 +8007,11 @@ function renderSensorTabBody() {
       renderSensorTabBody();
       if (campoMode) campoActualizar(); // el campo usa el mismo contaminante
     }));
+    body.querySelector(".st-clima-btn")?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      climaVisible = !climaVisible;
+      renderSensorTabBody();
+    });
     body.querySelector(".st-play")?.addEventListener("click", (event) => {
       event.stopPropagation();
       setPlay(!(playOn && playFuente === fuenteG), fuenteG); // pausa el suyo, o arranca el suyo (aunque fuera el otro)
@@ -8041,13 +8290,18 @@ function wireSensorList(select) {
   const panel = document.createElement("div");
   panel.id = "tb-sensor-list";
   panel.hidden = true;
-  panel.innerHTML = `<input type="search" placeholder="Buscar sensor o colonia" aria-label="Buscar sensor"><ul role="listbox" aria-label="Sensores"></ul>`;
+  panel.innerHTML = `<input type="search" placeholder="Buscar sensor, colonia, CP o municipio" aria-label="Buscar sensor, colonia, código postal o municipio"><ul role="listbox" aria-label="Sensores"></ul>`;
   document.body.append(panel);
   const input = panel.querySelector("input"), list = panel.querySelector("ul");
-  const sites = [...SENSOR_SITES].sort((a, b) => a.name.localeCompare(b.name, "es"));
+  // Agrupado por municipio (2026-11-25): municipios en orden alfabético y, dentro de cada uno, los sensores también.
+  // Un sensor sin municipio va al final, en SIN_MUNICIPIO.
+  const SIN_MUNICIPIO = "Otros";
+  const muniDe = (site) => site.municipio || SIN_MUNICIPIO;
+  const sites = [...SENSOR_SITES].sort((a, b) =>
+    (muniDe(a) === SIN_MUNICIPIO) - (muniDe(b) === SIN_MUNICIPIO) || muniDe(a).localeCompare(muniDe(b), "es") || a.name.localeCompare(b.name, "es"));
   const plain = (t) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   let active = -1;
-  const items = () => [...list.querySelectorAll("li:not([hidden])")];
+  const items = () => [...list.querySelectorAll("li[data-id]:not([hidden])")]; // sin los títulos de municipio
   const mark = (k) => {
     const all = items();
     active = Math.max(0, Math.min(all.length - 1, k));
@@ -8056,17 +8310,26 @@ function wireSensorList(select) {
   };
   const render = () => {
     const features = new Map((lastSensorCollection?.features || []).map((f) => [f.properties.id, f.properties]));
+    let grupo = null;
     list.innerHTML = sites.map((site) => {
+      const muni = muniDe(site);
+      const titulo = muni !== grupo ? `<li class="tb-grupo" role="presentation" data-grupo="${muni}">${muni}</li>` : "";
+      grupo = muni;
       const props = features.get(site.id), color = levelForAqi(props ? props.aqi : -1).color;
       const [code, name] = site.name.includes(" / ") ? site.name.split(" / ") : ["", site.name];
-      const place = placeNames[site.id] ? placeNames[site.id].split(", ")[0] : "";
-      return `<li role="option" data-id="${site.id}" data-q="${plain(`${site.name} ${place}`)}" aria-selected="${site.id === select.value}">` +
-        `<i style="background:${color}"></i><span>${name}${place && place !== name ? `<small>${place}</small>` : ""}</span>${code ? `<em>${code}</em>` : ""}</li>`;
+      // Se busca por nombre, colonia, código postal y municipio (sensorSites.js, 2026-11-25). Abajo del nombre:
+      // «Colonia · CP» (la colonia solo si no es el mismo nombre del sensor; el municipio ya va de título).
+      const colonia = site.colonia || (placeNames[site.id] ? placeNames[site.id].split(", ")[0] : "");
+      const detalle = [colonia !== name ? colonia : "", site.cp && `CP ${site.cp}`].filter(Boolean).join(" · ");
+      return titulo + `<li role="option" data-id="${site.id}" data-grupo="${muni}" data-q="${plain(`${site.name} ${colonia} ${site.municipio || ""} ${site.cp || ""}`)}" aria-selected="${site.id === select.value}">` +
+        `<i style="background:${color}"></i><span>${name}${detalle ? `<small>${detalle}</small>` : ""}</span>${code ? `<em>${code}</em>` : ""}</li>`;
     }).join("");
   };
   const filter = () => {
     const q = plain(input.value.trim());
-    list.querySelectorAll("li").forEach((li) => { li.hidden = Boolean(q) && !li.dataset.q.includes(q); });
+    list.querySelectorAll("li[data-id]").forEach((li) => { li.hidden = Boolean(q) && !li.dataset.q.includes(q); });
+    // el título de un municipio se esconde si no queda ningún sensor suyo
+    list.querySelectorAll("li.tb-grupo").forEach((h) => { h.hidden = !list.querySelector(`li[data-id][data-grupo="${h.dataset.grupo}"]:not([hidden])`); });
     mark(0);
   };
   const close = () => {
@@ -8106,9 +8369,9 @@ function wireSensorList(select) {
     else if (event.key === "Enter") { event.preventDefault(); pick(items()[active]); }
     else if (event.key === "Escape") { close(); trigger.focus(); }
   });
-  list.addEventListener("click", (event) => pick(event.target.closest("li")));
+  list.addEventListener("click", (event) => pick(event.target.closest("li[data-id]")));
   list.addEventListener("pointermove", (event) => {
-    const li = event.target.closest("li");
+    const li = event.target.closest("li[data-id]");
     if (li && !li.classList.contains("active")) mark(items().indexOf(li));
   });
   document.addEventListener("pointerdown", (event) => {
@@ -8409,6 +8672,7 @@ async function lookUpPlace(id, [lng, lat]) {
     const barrio = pick("neighborhood") || pick("locality");
     const city = pick("place") || props[0]?.context?.place?.name;
     placeNames[id] = [barrio, city].filter(Boolean).join(", ");
+    municipios[id] = city || "";
   } catch {
     placeNames[id] = "";
   }
@@ -8922,14 +9186,14 @@ const selectedSensorId = () => (cardPinned && !sensorDeselected ? activeSensorId
 let hovered2DId = null; // nube 2D bajo el cursor
 
 // ── Nubes encimadas (2026-11-18, Luisa: «agrupar con número» + «orden por gravedad») ──────────────────
-// Más lejos que GRUPO_HASTA_ZOOM, las nubes 2D que se tocan (a menos de GRUPO_RADIO_PX en pantalla, en cadena)
-// se juntan en UNA nube con el número de sensores (en blanco) y el color del PEOR nivel del grupo. Al picarla, el
+// Más lejos que GRUPO_HASTA_ZOOM, los sensores que están TODOS a menos de GRUPO_DISTANCIA_M entre sí (en el terreno,
+// no en pantalla: alejarse no junta más; 2026-11-25, Luisa, como en la app) se juntan en UNA nube con el número de sensores (en blanco) y el color del PEOR nivel del grupo. Al picarla, el
 // mapa se acerca hasta GRUPO_HASTA_ZOOM y se separan. Desde ese zoom ya no se agrupan: la de peor nivel queda
 // siempre encima y las que quedan debajo de una peor se ven a DEBAJO_ESCALA y DEBAJO_OPACIDAD.
 // El sensor elegido y el de la persona nunca se agrupan. Solo 2D (las columnas 3D no cambian).
 const GRUPO_HASTA_ZOOM = 14;     // desde este zoom, cada sensor con su nube (y orden por gravedad)
 const GRUPOS_EN_3D = false;      // (2026-11-18, Luisa: en 3D sin grupos; el orden por gravedad sí) true = también en 3D
-const GRUPO_RADIO_PX = 30;       // distancia en pantalla a la que dos nubes se juntan (la nube mide ~38 px de ancho)
+const GRUPO_DISTANCIA_M = 250;   // metros: hoy solo junta los sensores de un mismo campus Tec/Tecmi (11 grupos), no los de alrededor
 const GRUPO_ESCALA = 1.35;       // tamaño de la nube de grupo respecto a la de un sensor
 const GRUPO_NUMERO_TAMANO = 0.2; // alto del número, en fracción del ancho de la nube de grupo
 const GRUPO_NUMERO_Y = 0.6;      // altura del número dentro de la nube (0 = arriba, 1 = abajo)
@@ -8950,16 +9214,19 @@ function actualizarNubes(collection = nubesColeccion) {
     const { x, y } = map.project(f.geometry.coordinates);
     return { f, x, y, nivel: nivelNube(f) };
   });
+  const metros = (a, b) => { // distancia aproximada en el terreno (suficiente a esta escala)
+    const [lng1, lat1] = a.f.geometry.coordinates, [lng2, lat2] = b.f.geometry.coordinates;
+    const k = Math.PI / 180, cos = Math.cos(((lat1 + lat2) / 2) * k);
+    return 6371000 * k * Math.hypot((lng1 - lng2) * cos, lat1 - lat2);
+  };
   const grupos = [];
   const seAgrupa = (it) => agrupar && !sueltos.has(it.f.properties.id);
   const libres = items.filter((it) => !seAgrupa(it));
   const pendientes = items.filter(seAgrupa);
   while (pendientes.length) {
     const g = [pendientes.shift()];
-    for (let k = 0; k < g.length; k++) {
-      for (let j = pendientes.length - 1; j >= 0; j--) {
-        if (Math.hypot(g[k].x - pendientes[j].x, g[k].y - pendientes[j].y) < GRUPO_RADIO_PX) g.push(...pendientes.splice(j, 1));
-      }
+    for (let j = pendientes.length - 1; j >= 0; j--) {
+      if (g.every((it) => metros(it, pendientes[j]) < GRUPO_DISTANCIA_M)) g.push(...pendientes.splice(j, 1));
     }
     if (g.length === 1) libres.push(g[0]);
     else grupos.push(g);
@@ -10189,6 +10456,8 @@ function updateRoadsForTerrain(darken) {
     if (value) map.setConfigProperty("basemap", key, value);
   }
   roadsDarkened = darken;
+  // con el campo prendido, las calles nuevas también van tenues (si no, se veían completas hasta el siguiente cambio)
+  if (callesTenues) { for (const key of STUDIO_3D_ROAD_KEYS) delete callesOriginales[key]; callesTenues = null; campoCalles(); }
 }
 
 // "hsl(235, 16%, 27%)" o "hsla(…, 0.5)" con la claridad multiplicada por
@@ -10852,7 +11121,17 @@ async function startIntroSequence() {
   // Pasa a 3D. (El panel de la izquierda ya no se muestra: era para probar
   // capas y estilos mientras se diseñaba; sigue en el HTML, oculto.)
   if (!campoMode) setViewMode(true, { zoomOut: INTRO_3D_ZOOM_OUT }); // (si ya eligieron «Campo», se queda ahí)
+  // Ya en 3D, se abre sola la ficha «Ahora mismo» (2026-11-25, Luisa). No si en el camino abrieron otra ficha.
+  if (ABRIR_AHORA_AL_INICIO && !campoMode) {
+    setTimeout(() => {
+      if (expandedTab !== null || !is3DMode || !sensorTabsEl) return;
+      expandedTab = 0; // 0 = «Ahora mismo» (SENSOR_TABS)
+      layoutSensorTabs();
+    }, VIEW_TRANSITION_MS + ABRIR_AHORA_ESPERA_MS);
+  }
 }
+const ABRIR_AHORA_AL_INICIO = true; // false = el panel se queda cerrado al llegar al 3D
+const ABRIR_AHORA_ESPERA_MS = 300;  // pausa después de terminar la inclinación a 3D, antes de abrir la ficha
 
 // Botón "Usar mi ubicación" oculto TEMPORALMENTE (Luisa, 2026-10-02): la
 // intro arranca con un clic en cualquier lugar ("Haz click para continuar",
@@ -11410,7 +11689,7 @@ const CAMPO_MANCHA_NADA = 0.15;   // (un sensor solo: se acaba a ~2.9 km; dos a 
 const CAMPO_ORILLA_ENVOLVENTE = 2500;
 const CAMPO_MAX_ENVOLVENTE = 64;     // vértices máximos de la envolvente (tope del shader)
 const CAMPO_OPACIDAD = 0.72;        // opacidad del campo donde es completa
-// Play: cada gráfica de PM tiene el suyo. "horas" = «Últimas 12 h», un solo día hora por hora; "mes" = «Último
+// Play: cada gráfica de PM tiene el suyo. "horas" = «Últimas 24 h», hora por hora; "mes" = «Último
 // mes», cada 12 h. El último que se presionó (playFuente) es el que recorre el mapa y su gráfica marca dónde va.
 // CAMPO_FUENTE: el que arranca solo al entrar a Campo.
 const CAMPO_FUENTE = "horas";
@@ -11680,7 +11959,7 @@ function campoActualizar() {
 }
 
 // ── Play de la línea de tiempo (2026-11-17) ───────────────────────────────────────────────────────────
-// Cada gráfica de PM («Últimas 12 h» y «Último mes») lleva su botón ▶ junto al selector PM2.5 / PM10.
+// Cada gráfica de PM («Últimas 24 h» y «Último mes») lleva su botón ▶ junto al selector PM2.5 / PM10.
 // Recorre ese día hora por hora y mueve el mapa en las tres vistas: en 2D y 3D con verTiempo (los sensores;
 // con uno elegido, los demás tenues) y en Campo con el campo interpolado (mezcla suave entre horas). La
 // gráfica marca dónde va. Pasar el cursor por la gráfica lo pausa (manda el cursor).
@@ -11728,8 +12007,9 @@ function campoCrearNota() {
     const v = campoEstimar((m.x - origen.x) * mpu, (m.y - origen.y) * mpu);
     const nivel = v == null ? null : AQI_LEVELS[nomLevelIndex(v, campoKey)];
     const enMontana = campoMascaraEn((m.x - origen.x) * mpu, (m.y - origen.y) * mpu) > 0.5;
-    campoTip.innerHTML = enMontana ? `<span>Sin estimación: montaña</span>` : v == null ? `<span>Sin estimación: lejos de los sensores</span>`
-      : `<i style="background:${nivel.color}"></i><strong>≈ ${v.toFixed(1)}</strong> µg/m³ <span>${POLLUTANT_NAME[campoKey]} · ${LEVEL_FEMININE(nivel)}</span>`;
+    // (2026-11-18, Luisa) sin estimación (lejos de los sensores o en la montaña) no sale nada
+    if (enMontana || v == null) { campoTip.hidden = true; return; }
+    campoTip.innerHTML = `<i style="background:${nivel.color}"></i><strong>≈ ${v.toFixed(1)}</strong> µg/m³ <span>${POLLUTANT_NAME[campoKey]} · ${LEVEL_FEMININE(nivel)}</span>`;
     campoTip.style.left = `${event.originalEvent.clientX + 14}px`;
     campoTip.style.top = `${event.originalEvent.clientY + 14}px`;
     campoTip.hidden = false;
@@ -11737,7 +12017,7 @@ function campoCrearNota() {
   map.getCanvas().addEventListener("mouseleave", () => { campoTip.hidden = true; });
 }
 
-// Al entrar a Campo se abre la ficha con la gráfica del play («Últimas 12 h»); el play no arranca solo.
+// Al entrar a Campo se abre la ficha con la gráfica del play («Últimas 24 h»); el play no arranca solo.
 const fichaDe = (fuente) => (fuente === "horas" ? 3 : 4); // índice en SENSOR_TABS
 function entrarCampo() {
   if (campoMode) return;
@@ -11767,7 +12047,7 @@ function salirCampo() {
 }
 
 // ── Línea de tiempo desde las gráficas (2026-11-17) ─────────────────────────────────────────────────
-// Al pasar el cursor por la gráfica de «Últimas 12 h» (por hora) o «Último mes» (cada 12 h), TODO el mapa
+// Al pasar el cursor por la gráfica de «Últimas 24 h» (por hora) o «Último mes» (cada 12 h), TODO el mapa
 // muestra ese momento: nubes 2D, columnas 3D, leyenda y campo interpolado (en Campo, con el contaminante
 // de la gráfica). Al salir de la gráfica vuelve al último dato. La tarjeta y las fichas siguen con el
 // último dato (lastSensorCollection no se toca: el momento elegido solo se dibuja).
@@ -11933,11 +12213,62 @@ function campo3DSubir() {
   map.once("render", () => { campo3DSubiendo = false; fuente.pause(); });
 }
 // Qué capa del campo se ve: la 2D (campoLayer) o la pegada al relieve (3D); la otra, apagada.
+// (2026-11-18) Las calles del mapa base (Standard) cambian de color CALLES_CUADROS cuadros después de pedirlo
+// (medido cuadro por cuadro: 2 al prender, 3 al apagar). Por eso primero se les pide el cambio y el campo y las
+// vías propias esperan esos cuadros: así todo cambia en el mismo cuadro. (Con «idle» se esperaba de más.)
+const CALLES_CUADROS = { prender: 2, apagar: 3 };
+let callesEspera = null; // lo pendiente de aplicar mientras se esperan los cuadros
 function campoSyncCapas() {
-  const en3D = campoVisible() && (is3DMode || CAMPO_PEGADO);
+  const on = campoVisible();
+  // la primera vez, el campo no sale hasta tener la máscara de montañas (si no, sale un momento encima de los
+  // cerros); campoMascaraCalcular vuelve a llamar aquí al terminar
+  if (on && CAMPO_MASCARA_MONTANAS && CAMPO_PEGADO && campoDatos && !campoMascara && !campoMascaraFallo) return;
+  const en3D = on && (is3DMode || CAMPO_PEGADO);
   if (en3D && campoDatos) { campo3DPreparar(); campo3DAgregarCapa(); campo3DDibujar(); }
-  setLayoutVisibility("campo-3d", en3D);
-  campoCalles();
+  const aplicar = () => {
+    setLayoutVisibility("campo-3d", en3D);
+    campoCallesLineas(on);
+    map.triggerRepaint();
+  };
+  if (on !== callesTenues) {
+    callesTenues = on;
+    if (campoCallesBaseSinTransicion(on)) {
+      const espera = (callesEspera = { aplicar, cuadros: 0 });
+      const cuadro = () => {
+        if (callesEspera !== espera) return; // ya se pidió otro cambio
+        if (++espera.cuadros < CALLES_CUADROS[on ? "prender" : "apagar"]) { map.once("render", cuadro); map.triggerRepaint(); return; }
+        callesEspera = null;
+        espera.aplicar();
+      };
+      map.once("render", cuadro);
+      setTimeout(() => { if (callesEspera === espera) { callesEspera = null; espera.aplicar(); } }, 400); // por si no hay cuadros
+      map.triggerRepaint();
+      return;
+    }
+  }
+  if (callesEspera) { callesEspera.aplicar = aplicar; return; } // esperando: se aplicará lo más nuevo
+  aplicar();
+}
+const campoCallesBaseSinTransicion = (on) => { let cambio = false; sinTransicion(() => { cambio = campoCallesBase(on); }); return cambio; };
+// (2026-11-18) Mapbox anima los cambios de config del mapa base con la transición del estilo (300 ms): las calles
+// de Standard bajaban (o subían) DESPUÉS de que el campo ya estaba. Mientras se cambian, la transición va en 0
+// y se regresa a la de antes dos cuadros después.
+let transicionesAntes = null; // las de cada estilo antes de ponerlas en 0 (null = no están en 0)
+function sinTransicion(cambiar) {
+  const estilos = [map.style, ...(map.style?.fragments || []).map((f) => f.style)].filter((s) => s?.setTransition);
+  if (!transicionesAntes) transicionesAntes = estilos.map((s) => ({ ...s.getTransition() })); // copia: Mapbox cambia el mismo objeto
+  estilos.forEach((s) => s.setTransition({ duration: 0, delay: 0 }));
+  cambiar();
+  let hecho = false;
+  const regresar = () => {
+    if (hecho || !transicionesAntes) return;
+    hecho = true;
+    // setTransition se combina con la que ya hay: se regresa con valores explícitos (los de Mapbox por omisión: 300 ms)
+    estilos.forEach((s, i) => s.setTransition({ duration: 300, delay: 0, ...transicionesAntes[i] }));
+    transicionesAntes = null;
+  };
+  map.once("render", () => map.once("render", regresar));
+  setTimeout(regresar, 400); // por si no hay cuadros (pestaña escondida)
   map.triggerRepaint();
 }
 
@@ -12009,15 +12340,25 @@ function campoCalles() {
   const on = campoVisible();
   if (on === callesTenues) return;
   callesTenues = on;
+  sinTransicion(() => campoCallesBase(on)); // sin fundido: al mismo tiempo que el campo
+  campoCallesLineas(on);
+}
+// Capas de vías propias (estilo_mapbox_miaire_vias.json): cambian al instante.
+function campoCallesLineas(on) {
   // la opacidad de la capa puede ser un número o un interpolate por zoom (va arriba de todo): se escalan sus salidas
   const escalar = (v) => (typeof v === "number" ? v * CAMPO_CALLES_OPACIDAD
     : Array.isArray(v) && v[0] === "interpolate" ? [...v.slice(0, 3), ...v.slice(3).map((x, i) => (i % 2 ? x * CAMPO_CALLES_OPACIDAD : x))] : v);
   for (const capa of COMPLETO?.estilo?.capas || []) {
     if (capa.type !== "line" || !map.getLayer(capa.id)) continue;
     const base = capa.paint?.["line-opacity"] ?? 1;
+    map.setPaintProperty(capa.id, "line-opacity-transition", { duration: 0, delay: 0 }); // sin fundido: al instante
     map.setPaintProperty(capa.id, "line-opacity", on ? escalar(base) : base);
   }
-  // Las calles del mapa base (Standard): se les pone transparencia al color (su config no tiene opacidad).
+}
+// Calles del mapa base (Standard): se les pone transparencia al color (su config no tiene opacidad). Se llama
+// dentro de sinTransicion: si no, Mapbox lo anima y llega después que el campo. Devuelve true si cambió algo.
+function campoCallesBase(on) {
+  let cambio = false;
   for (const key of ["colorRoads", "colorTrunks", "colorMotorways"]) {
     let actual;
     try { actual = map.getConfigProperty("basemap", key); } catch { continue; }
@@ -12026,11 +12367,14 @@ function campoCalles() {
       callesOriginales[key] = actual;
       const [r, g, b, alfa] = cssColorToRgba01(actual);
       map.setConfigProperty("basemap", key, `rgba(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)}, ${(alfa * CAMPO_CALLES_OPACIDAD).toFixed(3)})`);
+      cambio = true;
     } else if (callesOriginales[key]) {
       map.setConfigProperty("basemap", key, callesOriginales[key]);
       delete callesOriginales[key];
+      cambio = true;
     }
   }
+  return cambio;
 }
 const callesOriginales = {};
 
@@ -12100,9 +12444,12 @@ async function campoMascaraCalcular() {
     campoMascara = { n: N, data: mask, textura: null };
     campoActualizar(); // vuelve a dibujar el campo con la máscara
   } catch (err) {
+    campoMascaraFallo = true;
     console.warn("Máscara de montañas: no se pudo calcular (el campo sigue sin máscara).", err);
   }
+  campoSyncCapas(); // ahora sí aparece el campo (si sigue prendido)
 }
+let campoMascaraFallo = false;
 // valor de la máscara en un punto (metros desde el origen); 0 si no hay máscara
 function campoMascaraEn(x, y) {
   if (!campoMascara) return 0;
