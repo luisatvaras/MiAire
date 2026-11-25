@@ -3132,8 +3132,14 @@ body.vista-campo.tiempo-fijo #tiempo-aviso { bottom: calc(29 * var(--k) + 48px);
 #sensor-tabs .hc-clima-icono { fill: none; stroke-width: 1.3; stroke-linecap: round; stroke-linejoin: round; }
 #sensor-tabs .hc-clima-texto { fill: #222855; font-size: 7.5px; font-weight: 700; }
 #sensor-tabs .hc-clima-excl { fill: #ffffff; font-size: 7.5px; font-weight: 800; }   /* el «!» de la advertencia */
-#sensor-tabs .hc-tip-clima { white-space: normal; width: 170px; margin-top: 4px; padding-top: 4px; border-top: 1px solid #ece9e3; font-size: 9px; line-height: 1.35; color: #222855; }
+#sensor-tabs .hc-tip-clima { white-space: normal; width: 150px; font-size: 9px; line-height: 1.3; color: #222855; } /* (2026-11-25) va solo en el globo: sin línea ni espacio arriba */
 #sensor-tabs .hc-tip-clima b { display: block; font-size: 10px; }
+#sensor-tabs .hc-tip-clima p { margin: 3px 0 0; }
+/* de dónde sale el riesgo (escala propia: el más grave de aire y calor) */
+#sensor-tabs .hc-tip-clima .hc-tip-porque { color: #8a8fab; }
+#sensor-tabs .st-clima-porque { opacity: 0.75; }
+/* «＋ clic para ver qué hacer» (2026-11-25): lo largo sale al picar la hora */
+#sensor-tabs .hc-tip-clima .hc-tip-mas { display: block; margin-top: 2px; color: #5d9ef0; font-size: 9px; font-weight: 600; }
 #sensor-tabs .st-clima { margin-top: 8px !important; padding-top: 8px; border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent); }
 
 /* Botón de clima de las gráficas de PM (junto al ▶): prende / apaga los tramos de calor, frío y humedad.
@@ -7198,7 +7204,7 @@ const SENSOR_TABS_LABEL = "Quiero saber más";
 // elegido (por ubicación o con clic). Temperatura, humedad y la gráfica son
 // SIMULADAS mientras no haya datos reales.
 // Estructura de 6 fichas (2026-11-17): las 4 gráficas de PM pasaron a 2 con selector PM2.5 / PM10.
-const SENSOR_TABS = ["Ahora mismo", "Qué hacer", "Contaminantes", "Últimas 24 h", "Último mes", "Clima"];
+const SENSOR_TABS = ["Ahora mismo", "Qué hacer hoy", "Contaminantes", "Últimas 24 h", "Último mes", "Clima"];
 const SENSOR_TAB_BASE = 43; // = la leyenda; «Quiero saber más» (ancho 25vw, style.css)
 const SENSOR_TAB_STEP = 25;
 const SENSOR_TAB_EXPAND = 250;
@@ -7212,10 +7218,10 @@ const SENSOR_TAB_EXPAND_GENERAL_0 = 205;
 // contaminante que muestran «Últimas 24 h» y «Último mes» (lo cambia el selector; es el mismo para las dos)
 let tabPmKey = "pm25";
 // Botón de clima en las gráficas de PM (junto al ▶): prende y apaga los tramos de calor / frío / humedad.
-const CLIMA_VISIBLE_INICIO = true; // cómo arranca: true = prendidos
+const CLIMA_VISIBLE_INICIO = false; // cómo arranca: false = apagados hasta picar el botón (2026-11-25, Luisa); true = prendidos
 let climaVisible = CLIMA_VISIBLE_INICIO;
 const SENSOR_TAB_EXPAND_BY_BASE = { ...SENSOR_TAB_EXPAND_BY };
-const QUE_HACER_CLIMA_ALTO = 75; // alto extra de «Qué hacer» cuando lleva el párrafo del clima que agrava
+const QUE_HACER_CLIMA_ALTO = 100; // alto extra de «Qué hacer» cuando lleva el párrafo del clima que agrava
 const SENSOR_TAB_STAGGER_MS = 40; // al salir las opciones, entre una y la siguiente
 let sensorTabsEl = null;
 let sensorTabsOpened = false;
@@ -7504,7 +7510,11 @@ const CLIMA_TONOS = {
   frio: ["#6f78a8", "#222855", "#141838", "#0b0e24"],
   humedad: ["#8dbaf5", "#5d9ef0", "#3f7fd6", "#3f7fd6"],
 };
-const CLIMA_SATURACION_RELLENO = [0.6, 0.8, 1, 1];
+// (2026-11-25) Relleno del color del contaminante (verde, amarillo…) dentro del tramo: el mismo relleno de la gráfica
+// encimado varias veces, así se ve más intenso donde hay clima. Capas = CLIMA_RELLENO_BASE + una por nivel
+// (precaución = BASE + 1 … peligro extremo = BASE + 4), hora por hora.
+const CLIMA_RELLENO_BASE = 1;
+const CLIMA_SATURACION_RELLENO = [1, 1, 1, 1]; // (ya no se usa para el relleno; queda para la máscara -rm)
 const TEMP_AJUSTE = 0;       // °C que se restan a la temperatura del sensor (los PurpleAir suelen medir ~4 °C de más por su propio calor); 0 = tal cual
 // Índice de calor de la NOAA (fórmula simple y, desde 80 °F, regresión de Rothfusz con sus dos ajustes). Entra y sale en °C.
 function indiceCalor(tC, rh) {
@@ -7558,6 +7568,12 @@ const CALOR_CONSEJO = [
   "Evita salir. Quédate en un lugar fresco con las ventanas cerradas.",
 ];
 const NIVEL_AIRE = ["aire bueno", "aire aceptable", "aire malo", "aire muy malo", "aire extremadamente malo"];
+// Hover de la gráfica (2026-11-25, Luisa: más breve): «Aire aceptable + sensación de 29° = riesgo moderado».
+// Lo largo (qué implica y qué hacer) sale al picar la hora (clic = fija el momento; ver wireMonthChart).
+const CALOR_RIESGO = ["riesgo bajo", "riesgo moderado", "riesgo alto", "riesgo muy alto", "riesgo extremo"]; // por el más grave de aire y calor
+const FRIO_RESULTADO = ["contaminación atrapada", "contaminación atrapada", "contaminación atrapada y riesgo de hipotermia"];
+const HUMEDAD_RESULTADO = ["puede marcar de más", "puede marcar bastante de más"];
+const mayuscula = (t) => t.charAt(0).toUpperCase() + t.slice(1);
 const FRIO_NOMBRES = ["frío", "mucho frío", "helada"];
 // nivelPm: nivel de la NOM del PM en esa hora (si no se da, se calcula con p[key])
 function climaQueAgrava(p, prev, key, nivelPm = null) {
@@ -7566,15 +7582,23 @@ function climaQueAgrava(p, prev, key, nivelPm = null) {
   if (nivel) {
     const n = CALOR_NIVELES.findLastIndex(([desde]) => hi >= desde);
     const pm = Math.max(0, nivelPm ?? (p[key] != null ? nomLevelIndex(p[key], key) : 0));
-    return { tipo: "calor", nivel: n, corto: `Sensación de ${Math.round(hi)}° (${nivel}) con ${NIVEL_AIRE[pm]}`, texto: `${CLIMA_IMPLICACIONES.calor[n]} ${CALOR_CON_AIRE[pm]} ${CALOR_CONSEJO[Math.max(pm, CALOR_GRAVEDAD[n])]}` };
+    const grave = Math.max(pm, CALOR_GRAVEDAD[n]);
+    // de dónde sale el riesgo (2026-11-25, Luisa: se queda la escala, pero se aclara en «qué hacer»)
+    const r = CALOR_RIESGO[grave].replace("riesgo ", ""), aire = NIVEL_AIRE[pm].replace("aire ", "");
+    const porque = CALOR_GRAVEDAD[n] > pm ? `El riesgo es ${r} por el calor (${nivel}, según el índice de calor de la NOAA), aunque el aire esté ${aire}.`
+      : CALOR_GRAVEDAD[n] === pm ? `El riesgo es ${r} por el aire y por el calor a la vez.`
+      : `El riesgo es ${r} por el aire (NOM-172); el calor lo empeora.`;
+    return { tipo: "calor", nivel: n, formula: `${mayuscula(NIVEL_AIRE[pm])} + sensación de ${Math.round(hi)}° = ${CALOR_RIESGO[grave]}`, corto: `Sensación de ${Math.round(hi)}° (${nivel}) con ${NIVEL_AIRE[pm]}`, texto: `${CLIMA_IMPLICACIONES.calor[n]} ${CALOR_CON_AIRE[pm]} ${CALOR_CONSEJO[grave]}`, porque, intensidad: grave - 1 }; // intensidad 0–3 (riesgo moderado … extremo): halo y relleno del tramo
   }
   if (t != null && t < FRIO_HASTA) {
     const n = FRIO_NIVELES.findLastIndex((v) => t < v);
-    return { tipo: "frio", nivel: n, corto: `${Math.round(t)}°: ${FRIO_NOMBRES[n]}`, texto: CLIMA_IMPLICACIONES.frio[n] };
+    const pm = Math.max(0, nivelPm ?? (p[key] != null ? nomLevelIndex(p[key], key) : 0));
+    return { tipo: "frio", nivel: n, formula: `${mayuscula(NIVEL_AIRE[pm])} + ${Math.round(t)}° = ${FRIO_RESULTADO[n]}`, corto: `${Math.round(t)}°: ${FRIO_NOMBRES[n]}`, texto: CLIMA_IMPLICACIONES.frio[n] };
   }
   if (rh != null && rh > HUMEDAD_DESDE) {
     const n = HUMEDAD_NIVELES.findLastIndex((v) => rh > v);
-    return { tipo: "humedad", nivel: n, corto: `Humedad de ${Math.round(rh)}%`, texto: CLIMA_IMPLICACIONES.humedad[n] };
+    const pm = Math.max(0, nivelPm ?? (p[key] != null ? nomLevelIndex(p[key], key) : 0));
+    return { tipo: "humedad", nivel: n, formula: `${mayuscula(NIVEL_AIRE[pm])} + humedad de ${Math.round(rh)}% = ${HUMEDAD_RESULTADO[n]}`, corto: `Humedad de ${Math.round(rh)}%`, texto: CLIMA_IMPLICACIONES.humedad[n] };
   }
   return null;
 }
@@ -7606,7 +7630,8 @@ function tramosClima(points, key) {
 }
 // Íconos de 9×11 (termómetro, copo, gota), en el color del tramo
 const CLIMA_ICONO = {
-  calor: '<path d="M3 1.5a1.5 1.5 0 0 1 3 0v6.2a3 3 0 1 1-3 0z"/><path d="M4.5 7v3" stroke-width="1.8"/>',
+  // calor: el mismo termómetro del botón de clima (bulbo sólido, relleno delgado; 2026-11-25). COLOR = el del tramo
+  calor: '<path d="M3 1.5a1.5 1.5 0 0 1 3 0v6.2a3 3 0 1 1-3 0z"/><circle cx="4.5" cy="10.4" r="1.1" fill="COLOR" stroke="none"/><path d="M4.5 4.2v5.6" stroke-width="1"/>',
   frio: '<path d="M4.5 0v11M0 2.8l9 5.4M0 8.2l9-5.4"/>',
   humedad: '<path d="M4.5 1C4.5 1 1 5.5 1 8a3.5 3.5 0 0 0 7 0C8 5.5 4.5 1 4.5 1z"/>',
 };
@@ -7685,21 +7710,33 @@ function monthChart(points, id, key = "pm25", sub = "cada 12 h") {
   const xsHoras = climaTramos.filter((r) => r.horas).flatMap((r) => [r.a0, r.a1]);
   const ticks = marks.map((k, j) => xsHoras.some((xh) => Math.abs(xh - x(k)) < 22) ? "" : `<text x="${x(k)}" y="${B + 14}" text-anchor="${j === 0 ? "start" : j === marks.length - 1 ? "end" : "middle"}" class="hc-axis">${tickText(k, j)}</text>`).join("");
   // Saturación por hora: un degradado horizontal con una parada en cada hora del tramo (opacidad según su nivel)
-  const nv = (nota, arr) => arr[Math.min(nota.nivel ?? 0, arr.length - 1)];
+  // intensidad del tramo en cada hora: en calor, el RIESGO (el más grave de aire y calor, 2026-11-25); en frío y humedad, su nivel
+  const intens = (nota) => nota.intensidad ?? nota.nivel ?? 0;
+  const nv = (nota, arr) => arr[Math.min(intens(nota), arr.length - 1)];
   const paradas = (r, op) => [...r.notas].map(([k, nota]) => `<stop offset="${Math.min(1, Math.max(0, (x(k) - r.a0) / (r.a1 - r.a0))).toFixed(4)}" stop-color="${op.color ?? nv(nota, CLIMA_TONOS[r.tipo])}" stop-opacity="${nv(nota, op.valores)}"/>`).join("");
   const climaDefs = climaTramos.map((r) => `<clipPath id="${r.cid}"><rect x="${r.a0.toFixed(1)}" y="0" width="${(r.a1 - r.a0).toFixed(1)}" height="${H}"/></clipPath>` +
     `<linearGradient id="${r.cid}-rg" gradientUnits="userSpaceOnUse" x1="${r.a0.toFixed(1)}" x2="${r.a1.toFixed(1)}" y1="0" y2="0">${paradas(r, { color: "#fff", valores: CLIMA_SATURACION_RELLENO })}</linearGradient>` +
     `<mask id="${r.cid}-rm" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect x="${r.a0.toFixed(1)}" y="0" width="${(r.a1 - r.a0).toFixed(1)}" height="${H}" fill="url(#${r.cid}-rg)"/></mask>`).join("");
-  // relleno más fuerte dentro del tramo (calor y frío): el mismo relleno, otra vez, recortado al tramo
-  const climaRelleno = climaTramos.filter((r) => r.tipo !== "humedad").map((r) => `<g mask="url(#${r.cid}-rm)"><path d="${area}" fill="url(#${gid}-band)" mask="url(#${gid}-mask)" clip-path="url(#${r.cid})"/></g>`).join("");
+  // relleno más fuerte dentro del tramo (calor y frío): el mismo relleno del contaminante encimado en capas, más capas
+  // en las horas de más nivel (CLIMA_RELLENO_BASE); cada capa con un degradado horizontal que la prende solo ahí
+  const climaRelleno = climaTramos.filter((r) => r.tipo !== "humedad").map((r) => {
+    const max = Math.max(...[...r.notas.values()].map(intens));
+    return Array.from({ length: max + 1 + CLIMA_RELLENO_BASE }, (_, capa) => {
+      const desde = capa - CLIMA_RELLENO_BASE, gid3 = `${r.cid}-r${capa}`;
+      const stops = [...r.notas].map(([k, nota]) => `<stop offset="${Math.min(1, Math.max(0, (x(k) - r.a0) / (r.a1 - r.a0))).toFixed(4)}" stop-color="#fff" stop-opacity="${intens(nota) >= desde ? 1 : 0}"/>`).join("");
+      return `<linearGradient id="${gid3}" gradientUnits="userSpaceOnUse" x1="${r.a0.toFixed(1)}" x2="${r.a1.toFixed(1)}" y1="0" y2="0">${stops}</linearGradient>` +
+        `<mask id="${gid3}-m" maskUnits="userSpaceOnUse" x="0" y="0" width="${W}" height="${H}"><rect x="${r.a0.toFixed(1)}" y="0" width="${(r.a1 - r.a0).toFixed(1)}" height="${H}" fill="url(#${gid3})"/></mask>` +
+        `<g mask="url(#${gid3}-m)"><path d="${area}" fill="url(#${gid}-band)" mask="url(#${gid}-mask)" clip-path="url(#${r.cid})"/></g>`;
+    }).join("");
+  }).join("");
   // Halo en capas: una capa por nivel, cada una más gruesa (CLIMA_HALO_CRECE) y visible solo en las horas que llegan
   // a ese nivel (degradado horizontal, así el grosor y la intensidad crecen suave de una hora a otra). Las capas se
   // suman: nivel 1 = una capa, nivel 4 = cuatro. Tono por nivel: CLIMA_TONOS.
   const climaHalo = climaTramos.map((r) => {
-    const max = Math.max(...[...r.notas.values()].map((n) => n.nivel ?? 0));
+    const max = Math.max(...[...r.notas.values()].map(intens));
     return Array.from({ length: max + 1 }, (_, capa) => {
       const gid2 = `${r.cid}-c${capa}`;
-      const stops = [...r.notas].map(([k, nota]) => `<stop offset="${Math.min(1, Math.max(0, (x(k) - r.a0) / (r.a1 - r.a0))).toFixed(4)}" stop-color="${nv(nota, CLIMA_TONOS[r.tipo])}" stop-opacity="${(nota.nivel ?? 0) >= capa ? CLIMA_CAPA_OPACIDAD[r.tipo === "humedad" ? "humedad" : "otro"] : 0}"/>`).join("");
+      const stops = [...r.notas].map(([k, nota]) => `<stop offset="${Math.min(1, Math.max(0, (x(k) - r.a0) / (r.a1 - r.a0))).toFixed(4)}" stop-color="${nv(nota, CLIMA_TONOS[r.tipo])}" stop-opacity="${intens(nota) >= capa ? CLIMA_CAPA_OPACIDAD[r.tipo === "humedad" ? "humedad" : "otro"] : 0}"/>`).join("");
       const ancho = (r.tipo === "humedad" ? CLIMA_HALO - 2 : CLIMA_HALO) + capa * CLIMA_HALO_CRECE;
       return `<linearGradient id="${gid2}" gradientUnits="userSpaceOnUse" x1="${r.a0.toFixed(1)}" x2="${r.a1.toFixed(1)}" y1="0" y2="0">${stops}</linearGradient>` +
         `<path d="${d}" class="hc-clima-halo hc-clima-${r.tipo}" stroke="url(#${gid2})" stroke-width="${ancho}" clip-path="url(#${r.cid})"/>`;
@@ -7713,7 +7750,7 @@ function monthChart(points, id, key = "pm25", sub = "cada 12 h") {
       `<line x1="${X.toFixed(1)}" x2="${X.toFixed(1)}" y1="${(Y + 3).toFixed(1)}" y2="${B}" class="hc-clima-guia" stroke="${c}"/>` +
       `<circle cx="${X.toFixed(1)}" cy="${Y.toFixed(1)}" r="2.4" class="hc-clima-punto" stroke="${c}"/>` +
       (h ? `<text x="${X.toFixed(1)}" y="${B + 14}" text-anchor="middle" class="hc-clima-hora" fill="${c}">${h}</text>` : "")).join("") +
-      `<g transform="translate(${lx.toFixed(1)},${(ly - 7.5).toFixed(1)}) scale(.75)" class="hc-clima-icono" stroke="${c}">${CLIMA_ICONO[r.tipo]}</g>` +
+      `<g transform="translate(${lx.toFixed(1)},${(ly - 7.5).toFixed(1)}) scale(.75)" class="hc-clima-icono" stroke="${c}">${CLIMA_ICONO[r.tipo].replaceAll("COLOR", c)}</g>` +
       // advertencia: «!» en un círculo del color del tramo (la explicación sale al pasar el cursor)
       `<g class="hc-clima-alerta"><title>${r.texto}</title><circle cx="${(lx + 13).toFixed(1)}" cy="${(ly - 3).toFixed(1)}" r="4.6" fill="${c}"/>` +
       `<text x="${(lx + 13).toFixed(1)}" y="${(ly - 0.4).toFixed(1)}" text-anchor="middle" class="hc-clima-excl">!</text></g>`;
@@ -7778,6 +7815,15 @@ function wireMonthChart(body, points, key = "pm25", fuente = null) {
   const max = maxGrafica(points, key);
   const etiqueta = (p) => `${p.n ? `promedio de ${p.n[key]} sensores · ` : ""}${p.label ?? periodLabel(p.start)}`; // general: cuántos sensores
   const notas = new Map(tramosClima(points, key).flatMap((r) => [...r.notas])); // clima que agrava: la razón, en cada hora del tramo
+  // Clima en el globo: al pasar, solo la suma corta y «＋ qué hacer»; en la hora fijada con clic, también lo largo.
+  const fijada = (k) => tiempoFijo?.fuente === fuente && tiempoFijo.k === k;
+  const climaTip = (k) => {
+    const nota = notas.get(k);
+    if (!nota) return "";
+    // (2026-11-25, Luisa) en las horas con clima el globo es SOLO la suma: sin valor, sensores ni fecha
+    return `<div class="hc-tip-clima"><b>${nota.formula}</b>${fijada(k) ? `<p>${nota.texto}</p>${nota.porque ? `<p class="hc-tip-porque">${nota.porque}</p>` : ""}` : `<span class="hc-tip-mas">＋ qué hacer</span>`}</div>`;
+  };
+  let ultimoK = null;
   svg.addEventListener("pointermove", (event) => {
     const rect = svg.getBoundingClientRect();
     const vx = ((event.clientX - rect.left) / rect.width) * W;
@@ -7787,8 +7833,8 @@ function wireMonthChart(body, points, key = "pm25", fuente = null) {
     const py = sinDato ? B : B - ((p.value ?? 0) / max) * (B - T);
     cross.setAttribute("x1", px); cross.setAttribute("x2", px); cross.style.opacity = 1;
     dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.setAttribute("fill", p.level?.color || "#8a8fab"); dot.style.opacity = 1;
-    const nota = notas.get(k);
-    tip.innerHTML = sinDato ? `<strong>sin datos</strong> <span>${p.label ?? periodLabel(p.start)}</span>` : `<strong>${p.value}</strong> <span>${etiqueta(p)}</span>${nota ? `<div class="hc-tip-clima"><b>${nota.corto}</b>${nota.texto}</div>` : ""}`;
+    ultimoK = k;
+    tip.innerHTML = sinDato ? `<strong>sin datos</strong> <span>${p.label ?? periodLabel(p.start)}</span>` : notas.has(k) ? climaTip(k) : `<strong>${p.value}</strong> <span>${etiqueta(p)}</span>`;
     dot.style.visibility = sinDato ? "hidden" : "visible";
     tip.hidden = false;
     if (fuente) verTiempo(fuente, k, key); // el mapa muestra ese momento (ver «Línea de tiempo desde las gráficas»)
@@ -7806,6 +7852,13 @@ function wireMonthChart(body, points, key = "pm25", fuente = null) {
     if (k < 0 || k >= points.length) return;
     if (tiempoFijo?.fuente === fuente && tiempoFijo.k === k) soltarFijo();
     else fijarTiempo(fuente, k, key);
+    // abre (o cierra) lo largo del clima sin esperar a que se mueva el cursor
+    if (notas.has(k) && !tip.hidden && ultimoK === k) {
+      const viejo = tip.querySelector(".hc-tip-clima");
+      if (viejo) viejo.outerHTML = climaTip(k);
+      const scale = rect.width / W;
+      tip.style.left = `${Math.min(rect.width - tip.offsetWidth - 4, (L + (k * (W - L - R)) / (points.length - 1)) * scale + 8)}px`;
+    }
   });
   svg.style.cursor = fuente ? "pointer" : "";
   // Marca de la animación del Campo (marcarGraficas): la guía, el punto y el valor van por donde va el play.
@@ -7822,7 +7875,7 @@ function wireMonthChart(body, points, key = "pm25", fuente = null) {
     dot.setAttribute("cx", px); dot.setAttribute("cy", py); dot.style.opacity = 1;
     dot.style.visibility = v == null ? "hidden" : "visible";
     if (v != null) dot.setAttribute("fill", AQI_LEVELS[nomLevelIndex(v, key)].color);
-    tip.innerHTML = v == null ? `<strong>sin datos</strong> <span>${p.label ?? periodLabel(p.start)}</span>` : `<strong>${v.toFixed(1)}</strong> <span>${etiqueta(p)}</span>`;
+    tip.innerHTML = v == null ? `<strong>sin datos</strong> <span>${p.label ?? periodLabel(p.start)}</span>` : f === 0 && fijada(k) && notas.has(k) ? climaTip(k) : `<strong>${v.toFixed(1)}</strong> <span>${etiqueta(p)}</span>`;
     tip.hidden = false;
     const scale = svg.getBoundingClientRect().width / W;
     tip.style.left = `${Math.min(svg.getBoundingClientRect().width - tip.offsetWidth - 4, px * scale + 8)}px`;
@@ -7967,7 +8020,7 @@ function renderSensorTabBody() {
       <ul class="st-recs">${(LANDING_LEVELS[index] || { recs: [] }).recs.map(([icon, title, detail]) =>
         `<li><span class="st-icon">${LANDING_ICONS[icon]}</span><span><strong>${title}</strong><br>${detail}</span></li>`).join("")}</ul>
       <p class="st-sensibles"><strong>Si eres sensible</strong> ${SENSIBLES_TEXTO[index]}</p>
-      ${climaHoy ? `<p class="st-clima"><strong>${climaHoy.corto}</strong> ${climaHoy.texto} ${consejo[climaHoy.tipo]}</p>` : ""}`;
+      ${climaHoy ? `<p class="st-clima"><strong>${climaHoy.formula}.</strong> ${climaHoy.texto}${climaHoy.porque ? ` <span class="st-clima-porque">${climaHoy.porque}</span>` : ""} ${consejo[climaHoy.tipo]}</p>` : ""}`;
   } else if (expandedTab === 2) {
     // ── Contaminantes: qué es cada uno y su valor de hoy (general: el promedio); los gases, sin datos todavía
     const nGases = SENSOR_SITES.filter((s) => cloudStyleFor(s.id) === "outline").length;
@@ -7994,7 +8047,7 @@ function renderSensorTabBody() {
     const fuenteG = hourly ? "horas" : "mes", conPlay = true, suena = playOn && playFuente === fuenteG; // cada gráfica con su play
     const selector = `<div class="st-fila"><div class="st-switch" role="group" aria-label="Contaminante">${["pm25", "pm10"].map((k) =>
       `<button type="button" data-pm="${k}" aria-pressed="${k === pmKey}">${POLLUTANT_NAME[k]}</button>`).join("")}</div>${conPlay
-      ? `<button type="button" class="st-play${suena ? " playing" : ""}" data-fuente="${fuenteG}" aria-label="${suena ? "Pausar" : "Reproducir"}"><svg class="st-i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6L12.6 8Z" fill="currentColor"/></svg><svg class="st-i-pausa" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 3h2.4v10H4.5zM9.1 3h2.4v10H9.1z" fill="currentColor"/></svg></button>` : ""}<button type="button" class="st-clima-btn" aria-pressed="${climaVisible}" aria-label="${climaVisible ? "Ocultar" : "Mostrar"} calor, frío y humedad" title="${climaVisible ? "Ocultar" : "Mostrar"} calor, frío y humedad"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6.5 3a1.5 1.5 0 0 1 3 0v5.6a2.8 2.8 0 1 1-3 0z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 7.5v3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button></div>`;
+      ? `<button type="button" class="st-play${suena ? " playing" : ""}" data-fuente="${fuenteG}" aria-label="${suena ? "Pausar" : "Reproducir"}"><svg class="st-i-play" viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3.2v9.6L12.6 8Z" fill="currentColor"/></svg><svg class="st-i-pausa" viewBox="0 0 16 16" aria-hidden="true"><path d="M4.5 3h2.4v10H4.5zM9.1 3h2.4v10H9.1z" fill="currentColor"/></svg></button>` : ""}<button type="button" class="st-clima-btn" aria-pressed="${climaVisible}" aria-label="${climaVisible ? "Ocultar" : "Mostrar"} calor, frío y humedad" title="${climaVisible ? "Ocultar" : "Mostrar"} calor, frío y humedad"><svg viewBox="0 0 16 16" aria-hidden="true"><!-- termómetro de bulbo sólido + gota (2026-11-25, opción «L»: el anterior parecía botón de encendido) --><path d="M3.6 2.4a1.4 1.4 0 0 1 2.8 0v6.4a2.6 2.6 0 1 1-2.8 0z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="5" cy="11" r="1" fill="currentColor"/><path d="M5 5.2v5" stroke="currentColor" stroke-width="0.9" stroke-linecap="round"/><path d="M12 5.8s-2.1 2.7-2.1 4.2a2.1 2.1 0 0 0 4.2 0c0-1.5-2.1-4.2-2.1-4.2z" fill="currentColor"/></svg></button></div>`;
     body.innerHTML = selector + (points.filter((p) => pointLevel(p, pmKey)).length < 2
       ? `<p class="st-note">${general ? "No hay" : "Este sensor no tiene"} datos de ${POLLUTANT_NAME[pmKey]} del ${dayLabel(new Date(`${meta.desde}:00:00`))}${hourly ? ` (${new Date(`${meta.desde}:00:00`).getHours()} h)` : ""} al ${dayLabel(new Date(`${meta.hasta}:00:00`))}${hourly ? ` (${new Date(`${meta.hasta}:00:00`).getHours() + 1} h)` : ""}.</p>`
       : monthChart(points, id, pmKey, `${hourly ? ventanaHoras() : "cada 12 h"}${general ? " · promedio" : ""}`));
@@ -8272,6 +8325,7 @@ function goToSensor(id) {
   if (lastSensorCollection) updateLocationColor(lastSensorCollection); // botones del color del sensor
   updateSensorCard();
   update2DCloudSize();
+  reaplicarTiempo();
   map.triggerRepaint();
   const feature = lastSensorCollection?.features.find((f) => f.properties.id === activeSensorId());
   if (feature) map.easeTo({ center: feature.geometry.coordinates, duration: 1500, essential: true });
@@ -9358,6 +9412,7 @@ function pickSensor(id) {
   if (lastSensorCollection) updateLocationColor(lastSensorCollection); // botones del color del sensor
   updateSensorCard();
   update2DCloudSize();
+  reaplicarTiempo();
   map.triggerRepaint();
 }
 // Quita la selección: se va la tarjeta y la nube vuelve a su tamaño.
@@ -9366,6 +9421,7 @@ function clearSensorSelection() {
   sensorDeselected = true;
   updateSensorCard();
   update2DCloudSize();
+  reaplicarTiempo();
   map.triggerRepaint();
 }
 // CLOUD_ROTATION_DEG: giro extra de las nubes 3D que flotan sobre las
@@ -9848,12 +9904,12 @@ function wirePopups() {
       else pickSensor(hoveredSensorId);
       return;
     }
-    const on2DCloud = map.getLayer("sensor-cloud-2d") && map.queryRenderedFeatures(e.point, { layers: ["sensor-cloud-2d"] }).length > 0;
+    const on2DCloud = !render3DColumns && map.getLayer("sensor-cloud-2d") && map.queryRenderedFeatures(e.point, { layers: ["sensor-cloud-2d"] }).length > 0;
     if (!on2DCloud) clearSensorSelection();
   });
   // Nubes 2D: hover al doble y clic para seleccionar.
   map.on("mousemove", "sensor-cloud-2d", (e) => {
-    if (introActive) return;
+    if (introActive || render3DColumns) return; // en 3D están invisibles: no cuentan
     const p = e.features[0]?.properties;
     const id = p?.n ? null : (p?.id ?? null); // un grupo no crece con el hover
     map.getCanvas().style.cursor = POINTER_CURSOR;
@@ -9870,7 +9926,7 @@ function wirePopups() {
     }
   });
   map.on("click", "sensor-cloud-2d", (e) => {
-    if (introActive) return;
+    if (introActive || render3DColumns) return; // en 3D están invisibles: no cuentan
     const f = e.features[0];
     // grupo (ver «Nubes encimadas»): el mapa se acerca hasta que se separan
     if (f?.properties.n) map.easeTo({ center: f.geometry.coordinates, zoom: Math.max(map.getZoom() + 0.5, GRUPO_HASTA_ZOOM + 0.1), duration: 800 });
@@ -12059,6 +12115,15 @@ let tiempoRaf = 0, tiempoAviso = null;
 // con todos.
 const ATENUADO_OPACIDAD = 0.2;
 let idsAtenuados = null; // Set de ids tenues, o null
+let atenuadosDe; // id del sensor en foco con el que se calcularon (null = vista general)
+// Cambió el sensor elegido (o se quitó) con un momento a la vista: se vuelve a aplicar para que el foco
+// pase al nuevo (2026-11-25: antes se quedaba en el anterior).
+function reaplicarTiempo() {
+  if (!tiempoScrub) return;
+  const { fuente, k, cursor, fijo } = tiempoScrub;
+  tiempoScrub = null;
+  verTiempo(fuente, k, null, !cursor, !!fijo, true);
+}
 let seriesCache = null;
 function seriesDe(id) {
   seriesCache ??= new Map();
@@ -12088,7 +12153,7 @@ function coleccionEnTiempo(fuente, k) {
 }
 // desdePlay: lo pide el play (no el cursor); el cursor sobre la gráfica pausa el play.
 // fijo: el momento fijado con clic (se queda al sacar el cursor; ver fijarTiempo).
-function verTiempo(fuente, k, key, desdePlay = false, fijo = false) {
+function verTiempo(fuente, k, key, desdePlay = false, fijo = false, inmediato = false) {
   if (tiempoScrub?.fuente === fuente && tiempoScrub.k === k && tiempoScrub.cursor === !desdePlay && !!tiempoScrub.fijo === fijo) return;
   tiempoScrub = { fuente, k, cursor: !desdePlay, fijo };
   if (!desdePlay && playOn) setPlay(false);
@@ -12107,14 +12172,15 @@ function verTiempo(fuente, k, key, desdePlay = false, fijo = false) {
   const aplicar = () => {
     if (!tiempoScrub || !lastSensorCollection) return;
     const soloId = vistaGeneral() ? null : activeSensorId();
-    const antes = idsAtenuados;
+    const antes = atenuadosDe;
+    atenuadosDe = soloId;
     idsAtenuados = soloId ? new Set(lastSensorCollection.features.map((f) => f.properties.id).filter((i) => i !== soloId)) : null;
     applySensorUpdate(coleccionEnTiempo(tiempoScrub.fuente, tiempoScrub.k)); // cambian todos; los no elegidos, tenues
-    if (!antes !== !idsAtenuados) refreshClouds(); // opacidad de las nubes 2D
+    if (antes !== soloId) { refreshClouds(); map.triggerRepaint(); } // opacidad de las nubes 2D (y 3D) si cambió el elegido
     if (campoVisible()) campoActualizar();
   };
   // el play cambia de periodo pocas veces (una por hora o por 12 h): se aplica ya; el cursor, como mucho una vez por cuadro
-  if (desdePlay) aplicar();
+  if (desdePlay || inmediato) aplicar(); // inmediato: cambió el sensor elegido (reaplicarTiempo)
   else tiempoRaf = requestAnimationFrame(aplicar);
 }
 // Sin forzar: si hay un momento fijado, el mapa vuelve a él (no al último dato).
@@ -12129,6 +12195,7 @@ function soltarTiempo(forzar = false) {
   tiempoScrub = null;
   cancelAnimationFrame(tiempoRaf);
   document.body.classList.remove("viendo-tiempo", "tiempo-fijo");
+  atenuadosDe = undefined;
   if (idsAtenuados) { idsAtenuados = null; refreshClouds(); }
   if (lastSensorCollection) applySensorUpdate(lastSensorCollection);
   if (campoVisible()) campoActualizar();
