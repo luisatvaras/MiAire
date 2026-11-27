@@ -7204,13 +7204,15 @@ const SENSOR_TABS_LABEL = "Quiero saber más";
 // elegido (por ubicación o con clic). Temperatura, humedad y la gráfica son
 // SIMULADAS mientras no haya datos reales.
 // Estructura de 6 fichas (2026-11-17): las 4 gráficas de PM pasaron a 2 con selector PM2.5 / PM10.
-const SENSOR_TABS = ["Ahora mismo", "Qué hacer hoy", "Contaminantes", "Últimas 24 h", "Último mes", "Clima"];
+// Orden (2026-11-27, Luisa): «Qué hacer» arriba (es la que se abre sola al llegar al 3D) y luego «Ahora mismo».
+const SENSOR_TABS = ["Qué hacer", "Ahora mismo", "Contaminantes", "Últimas 24 h", "Último mes", "Clima"];
+const FICHA_QUE_HACER = SENSOR_TABS.indexOf("Qué hacer"), FICHA_AHORA = SENSOR_TABS.indexOf("Ahora mismo");
 const SENSOR_TAB_BASE = 43; // = la leyenda; «Quiero saber más» (ancho 25vw, style.css)
 const SENSOR_TAB_STEP = 25;
 const SENSOR_TAB_EXPAND = 250;
 // fichas que necesitan más alto al abrirse (índice en SENSOR_TABS → alto): las gráficas llevan el selector
 // PM2.5 / PM10 arriba; «Clima» solo lleva el dato actual (5: alto de esa ficha abierta)
-const SENSOR_TAB_EXPAND_BY = { 0: 175, 1: 185, 2: 180, 3: 280, 4: 280, 5: 130 };
+const SENSOR_TAB_EXPAND_BY = { [FICHA_AHORA]: 175, [FICHA_QUE_HACER]: 185, 2: 180, 3: 280, 4: 280, 5: 130 };
 // «Contaminantes» crece en los sensores que también miden gases (nube de contorno)
 const SENSOR_TAB_EXPAND_GASES = 235;
 // «Ahora mismo» en la vista general lleva además la fila de sensores por nivel
@@ -7996,11 +7998,11 @@ function renderSensorTabBody() {
   const body = tab.querySelector(".st-body");
   const pill = `<span class="st-level"><i style="background:${level.color}"></i>${titleCase(level.label)}</span>`;
   const sinDatos = `<p class="st-note">${general ? "No hay datos de los sensores en el archivo." : "Este sensor no tiene datos en el archivo. Revisa el sensor con datos más cercano."}</p>`;
-  if (expandedTab === 0) {
+  if (expandedTab === FICHA_AHORA) {
     // ── Ahora mismo: el nivel en grande, PM2.5 y PM10 con su barrita de la NOM y la fecha del dato.
     // General: nivel del promedio, cuántos sensores y cuántos hay en cada nivel.
-    const alto0 = general ? SENSOR_TAB_EXPAND_GENERAL_0 : SENSOR_TAB_EXPAND_BY_BASE[0];
-    if (SENSOR_TAB_EXPAND_BY[0] !== alto0) { SENSOR_TAB_EXPAND_BY[0] = alto0; requestAnimationFrame(layoutSensorTabs); }
+    const alto0 = general ? SENSOR_TAB_EXPAND_GENERAL_0 : SENSOR_TAB_EXPAND_BY_BASE[FICHA_AHORA];
+    if (SENSOR_TAB_EXPAND_BY[FICHA_AHORA] !== alto0) { SENSOR_TAB_EXPAND_BY[FICHA_AHORA] = alto0; requestAnimationFrame(layoutSensorTabs); }
     if (!last || index < 0) { body.innerHTML = sinDatos; return; }
     body.innerHTML = `<p class="st-label">${general ? "Promedio de la ciudad" : "Último dato"} · ${periodLabel(last.start)}</p>
       <div class="st-now"><i style="background:${level.color}"></i><span class="st-now-word">${titleCase(level.label)}</span>${general
@@ -8009,13 +8011,13 @@ function renderSensorTabBody() {
       <div class="st-pms">${["pm25", "pm10"].map((k) => nomBar(last[k], k)).join("")}</div>
       ${general ? `<div class="st-cuenta" aria-label="Sensores por nivel">${resumenGeneral().cuenta.map((n, i) => `<span title="${titleCase(AQI_LEVELS[i].label)}"><i style="background:${AQI_LEVELS[i].color}"></i>${n}</span>`).join("")}</div>` : ""}
       <p class="st-note">${general ? "Promedio de 12 h de los sensores con datos. Elige un sensor en el mapa para ver el suyo." : "Promedio de 12 h. Rangos de la NOM-172-SEMARNAT-2023."}</p>`;
-  } else if (expandedTab === 1) {
+  } else if (expandedTab === FICHA_QUE_HACER) {
     // ── Qué hacer: las recomendaciones del nivel + aviso para grupos sensibles + clima que agrava (última hora)
     const kh = serieHoras.findLastIndex((p) => p.temp != null);
     const climaHoy = index >= CLIMA_PM_DESDE && kh >= 0 ? climaQueAgrava(serieHoras[kh], null, "pm25", index) : null;
     const consejo = { calor: "", /* el de calor ya va en CALOR_CON_AIRE */ frio: "Si eres sensible, evita salir temprano y cubre nariz y boca.", humedad: "Revisa el sensor más cercano antes de cambiar tus planes." };
-    const alto1 = SENSOR_TAB_EXPAND_BY_BASE[1] + (climaHoy ? QUE_HACER_CLIMA_ALTO : 0);
-    if (SENSOR_TAB_EXPAND_BY[1] !== alto1) { SENSOR_TAB_EXPAND_BY[1] = alto1; requestAnimationFrame(layoutSensorTabs); }
+    const alto1 = SENSOR_TAB_EXPAND_BY_BASE[FICHA_QUE_HACER] + (climaHoy ? QUE_HACER_CLIMA_ALTO : 0);
+    if (SENSOR_TAB_EXPAND_BY[FICHA_QUE_HACER] !== alto1) { SENSOR_TAB_EXPAND_BY[FICHA_QUE_HACER] = alto1; requestAnimationFrame(layoutSensorTabs); }
     body.innerHTML = index < 0 ? sinDatos : `<p class="st-label">Con el aire ${titleCase(level.label).toLowerCase()}${general ? " en promedio" : ""} ${pill}</p>
       <ul class="st-recs">${(LANDING_LEVELS[index] || { recs: [] }).recs.map(([icon, title, detail]) =>
         `<li><span class="st-icon">${LANDING_ICONS[icon]}</span><span><strong>${title}</strong><br>${detail}</span></li>`).join("")}</ul>
@@ -11177,16 +11179,17 @@ async function startIntroSequence() {
   // Pasa a 3D. (El panel de la izquierda ya no se muestra: era para probar
   // capas y estilos mientras se diseñaba; sigue en el HTML, oculto.)
   if (!campoMode) setViewMode(true, { zoomOut: INTRO_3D_ZOOM_OUT }); // (si ya eligieron «Campo», se queda ahí)
-  // Ya en 3D, se abre sola la ficha «Ahora mismo» (2026-11-25, Luisa). No si en el camino abrieron otra ficha.
+  // Ya en 3D, se abre sola la ficha de arriba, «Qué hacer» (2026-11-27, Luisa; antes «Ahora mismo»).
+  // No si en el camino abrieron otra ficha.
   if (ABRIR_AHORA_AL_INICIO && !campoMode) {
     setTimeout(() => {
       if (expandedTab !== null || !is3DMode || !sensorTabsEl) return;
-      expandedTab = 0; // 0 = «Ahora mismo» (SENSOR_TABS)
+      expandedTab = FICHA_QUE_HACER;
       layoutSensorTabs();
     }, VIEW_TRANSITION_MS + ABRIR_AHORA_ESPERA_MS);
   }
 }
-const ABRIR_AHORA_AL_INICIO = true; // false = el panel se queda cerrado al llegar al 3D
+const ABRIR_AHORA_AL_INICIO = true; // abre sola la ficha «Qué hacer» al llegar al 3D; false = el panel se queda cerrado
 const ABRIR_AHORA_ESPERA_MS = 300;  // pausa después de terminar la inclinación a 3D, antes de abrir la ficha
 
 // Botón "Usar mi ubicación" oculto TEMPORALMENTE (Luisa, 2026-10-02): la
